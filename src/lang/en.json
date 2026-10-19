@@ -34,6 +34,23 @@
       "debug": {
         "name": "Debug logging",
         "hint": "Print extra diagnostics to the browser console."
+      },
+      "imageSource": {
+        "name": "Combatant image",
+        "hint": "Show the token art, or the actor portrait for combatants.",
+        "choices": {
+          "token": "Token art",
+          "actor": "Actor portrait"
+        }
+      },
+      "tokenSize": {
+        "name": "Combatant token size",
+        "hint": "Maximum width of the main combatant token (pokemon stays small).",
+        "choices": {
+          "small": "Small (100px)",
+          "medium": "Medium (150px)",
+          "large": "Large (250px)"
+        }
       }
     },
     "keybindings": {

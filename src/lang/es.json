@@ -34,6 +34,23 @@
       "debug": {
         "name": "Registro de depuración",
         "hint": "Muestra diagnósticos extra en la consola del navegador."
+      },
+      "imageSource": {
+        "name": "Imagen de los combatientes",
+        "hint": "Muestra el arte del token, o el retrato del actor para los combatientes.",
+        "choices": {
+          "token": "Arte del token",
+          "actor": "Retrato del actor"
+        }
+      },
+      "tokenSize": {
+        "name": "Tamaño del token del combatiente",
+        "hint": "Ancho máximo del token principal (los Pokémon siempre son pequeños).",
+        "choices": {
+          "small": "Pequeño (100px)",
+          "medium": "Mediano (150px)",
+          "large": "Grande (250px)"
+        }
       }
     },
     "keybindings": {

@@ -227,17 +227,17 @@ function activePokemonInfo(
 }
 
 function combatantImg(combatant: Combatant, actor: Actor | null): string {
+  const srcSetting = getSettings().imageSource;
   const raw = combatant as unknown as {
     img?: unknown;
     token?: { texture?: { src?: unknown } } | null;
   };
   const tokenSrc = raw.token?.texture?.src;
-  if (typeof tokenSrc === "string" && tokenSrc) return tokenSrc;
+  if (typeof tokenSrc === "string" && tokenSrc && srcSetting === "token") return tokenSrc;
   const own = typeof raw.img === "string" ? raw.img : "";
-  if (own) return own;
-  const actorImg = actor?.img;
-  if (typeof actorImg === "string" && actorImg) return actorImg;
-  return "icons/svg/mystery-man.svg";
+  if (own && srcSetting === "actor") return own;
+  if (typeof tokenSrc === "string" && tokenSrc) return tokenSrc;
+  return own || (actor?.img ?? "icons/svg/mystery-man.svg");
 }
 
 function emptyView(): CombatView {

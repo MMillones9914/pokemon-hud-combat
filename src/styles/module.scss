@@ -3,13 +3,30 @@
   --phc-radius-sm: 6px;
 
   /* Token frame: the only fill in the whole bar, painted over each token. */
+  :root {
+  --phc-font: "Signika", "Alegreya SC", sans-serif;
+  --phc-radius-sm: 6px;
+
+  /* Token frame: the only fill in the whole bar, painted over each token. */
   --phc-token-bg: rgba(6, 6, 6, 0.72);
 
-  /* Faction borders: ally = white, enemy = dark grey, neutral = mid grey. */
-  --phc-ally: #ffffff;
-  --phc-enemy: #454545;
-  --phc-neutral: #7d7d7d;
+  /* Faction backgrounds: ally = white below token, enemy = dark grey below token */
+  --phc-ally-bg: #ffffff;
+  --phc-enemy-bg: #222222;
+  --phc-neutral-bg: #666666;
   --phc-slot: #5f5f5f;
+
+  --phc-gold: #e8c76a;
+  --phc-icon: #ffffff;
+  --phc-icon-dim: #b9b9b9;
+  --phc-btn-border: rgba(255, 255, 255, 0.55);
+
+  /* Portrait is 3:4 (portrait orientation), width drives the card size. */
+  --phc-portrait-w: 150px;
+  --phc-poke-w: 48px;
+
+  --phc-transition: 0.16s ease;
+}
 
   --phc-gold: #e8c76a;
   --phc-icon: #ffffff;
@@ -120,7 +137,7 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
 }
 
 .phc-btn--danger:hover {
-  border-color: var(--phc-enemy);
+  border-color: var(--phc-enemy-bg);
   color: #ff8f8f;
 }
 
@@ -188,26 +205,29 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
   padding: 0;
   margin: 0;
   overflow: hidden;
-  border: 1px solid var(--phc-neutral);
+  border: 1px solid var(--phc-neutral-bg);
   border-radius: var(--phc-radius-sm);
-  background: var(--phc-token-bg);
+  background: var(--phc-neutral-bg);
   color: inherit;
   font: inherit;
   cursor: pointer;
   transition: border-color var(--phc-transition);
 }
 
-/* Ally = white border, enemy = dark grey border. */
+/* Ally = white background/border, enemy = dark grey background/border. */
 .phc-card--ally .phc-token {
-  border-color: var(--phc-ally);
+  background: var(--phc-ally-bg);
+  border-color: var(--phc-ally-bg);
 }
 
 .phc-card--enemy .phc-token {
-  border-color: var(--phc-enemy);
+  background: var(--phc-enemy-bg);
+  border-color: var(--phc-enemy-bg);
 }
 
 .phc-card--neutral .phc-token {
-  border-color: var(--phc-neutral);
+  background: var(--phc-neutral-bg);
+  border-color: var(--phc-neutral-bg);
 }
 
 /* Full token art — never cropped. */
@@ -325,7 +345,7 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
 }
 
 .phc-token--mini {
-  width: 48px;
+  width: var(--phc-poke-w);
 }
 
 /* ------------------------------------------------------------------ */
@@ -334,7 +354,10 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
 
 .phc-bar.theme-light {
   --phc-token-bg: rgba(255, 255, 255, 0.74);
-  --phc-enemy: #4a4a4a;
+  --phc-ally-bg: #ffffff;
+  --phc-enemy-bg: #111111;
+  --phc-neutral-bg: #666666;
+  --phc-slot: #7a7a7a;
   --phc-btn-border: rgba(0, 0, 0, 0.5);
   --phc-icon: #1c1c1c;
   --phc-icon-dim: #5a5a5a;

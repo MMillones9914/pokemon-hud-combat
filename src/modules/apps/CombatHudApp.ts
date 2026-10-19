@@ -70,6 +70,7 @@ interface CombatHudContext
     foundry.applications.api.ApplicationV2.RenderContext {
   started: boolean;
   isGM: boolean;
+  tokenWidth: string;
   groups: TemplateGroup[];
   hasGroups: boolean;
 }
@@ -180,6 +181,7 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
     return {
       started: view.started,
       isGM: game.user?.isGM === true,
+      tokenWidth: tokenWidthCss(),
       groups,
       hasGroups: groups.length > 0
     };
@@ -378,6 +380,7 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
   #applyRenderEffects(): void {
     try {
       this.#applyThemeClass();
+      this.#applySize();
       this.#positionBar();
       this.#repositionAfterRender();
     } catch (err) {
@@ -402,6 +405,11 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
           : matchMedia("(prefers-color-scheme: dark)").matches;
     this.element.classList.toggle("theme-dark", dark);
     this.element.classList.toggle("theme-light", !dark);
+  }
+
+  #applySize(): void {
+    const w = tokenWidthCss();
+    (this.element as HTMLElement).style.setProperty('--phc-portrait-w', w, 'important');
   }
 
   #handleError(where: string, err: unknown): void {
@@ -492,6 +500,12 @@ function schedule(action: "show" | "hide" | "refresh"): void {
   scheduledFlush = requestAnimationFrame(flushSchedule);
 }
 
+function tokenWidthCss(): string {
+  const size = getSettings().tokenSize;
+  if (size === 'small') return '100px';
+  if (size === 'large') return '250px';
+  return '150px';
+}
 export function isCombatHudVisible(): boolean {
   return activeInstance?.rendered === true;
 }

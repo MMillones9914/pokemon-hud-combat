@@ -5,13 +5,16 @@ export const SETTINGS = {
   autoShow: "autoShow",
   hideNativeTracker: "hideNativeTracker",
   gmBypass: "gmBypass",
-  debug: "debug"
+  debug: "debug",
+  imageSource: "imageSource",
+  tokenSize: "tokenSize"
 } as const;
 
 export interface SettingsHooks {
   onHideNativeTrackerChange?: (hidden: boolean) => void;
   onEnabledChange?: (enabled: boolean) => void;
   onAutoShowChange?: (autoShow: boolean) => void;
+  onTokenSizeChange?: () => void;
 }
 
 export function registerSettings(hooks?: SettingsHooks): void {
@@ -62,6 +65,34 @@ export function registerSettings(hooks?: SettingsHooks): void {
     type: Boolean,
     default: false
   });
+
+  game.settings.register(SCOPE, SETTINGS.imageSource, {
+    name: "pokemon-hud-combat.settings.imageSource.name",
+    hint: "pokemon-hud-combat.settings.imageSource.hint",
+    scope: "client",
+    config: true,
+    type: String,
+    choices: {
+      token: "pokemon-hud-combat.settings.imageSource.choices.token",
+      actor: "pokemon-hud-combat.settings.imageSource.choices.actor"
+    },
+    default: "token"
+  });
+
+  game.settings.register(SCOPE, SETTINGS.tokenSize, {
+    name: "pokemon-hud-combat.settings.tokenSize.name",
+    hint: "pokemon-hud-combat.settings.tokenSize.hint",
+    scope: "client",
+    config: true,
+    type: String,
+    choices: {
+      small: "pokemon-hud-combat.settings.tokenSize.choices.small",
+      medium: "pokemon-hud-combat.settings.tokenSize.choices.medium",
+      large: "pokemon-hud-combat.settings.tokenSize.choices.large"
+    },
+    default: "medium",
+    onChange: () => hooks?.onTokenSizeChange?.()
+  });
 }
 
 export function getSettings(): {
@@ -70,13 +101,24 @@ export function getSettings(): {
   hideNativeTracker: boolean;
   gmBypass: boolean;
   debug: boolean;
+  imageSource: "token" | "actor";
+  tokenSize: "small" | "medium" | "large";
 } {
+  const rawSize = game.settings.get(SCOPE, SETTINGS.tokenSize) as string;
+  const tokenSize = (rawSize === "small" || rawSize === "large" ? rawSize : "medium") as
+    | "small"
+    | "medium"
+    | "large";
+  const rawImg = game.settings.get(SCOPE, SETTINGS.imageSource) as string;
+  const imageSource = rawImg === "actor" ? "actor" : "token";
   return {
     enabled: game.settings.get(SCOPE, SETTINGS.enabled) as boolean,
     autoShow: game.settings.get(SCOPE, SETTINGS.autoShow) as boolean,
     hideNativeTracker: game.settings.get(SCOPE, SETTINGS.hideNativeTracker) as boolean,
     gmBypass: game.settings.get(SCOPE, SETTINGS.gmBypass) as boolean,
-    debug: game.settings.get(SCOPE, SETTINGS.debug) as boolean
+    debug: game.settings.get(SCOPE, SETTINGS.debug) as boolean,
+    imageSource,
+    tokenSize
   };
 }
 
