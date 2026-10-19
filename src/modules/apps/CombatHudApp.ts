@@ -1,0 +1,551 @@
+import type { DeepPartial } from "fvtt-types/utils";
+import { patchChildren } from "../core/dom-patch";
+import {
+  endCombat,
+  nextTurn,
+  previousTurn,
+  rollAllInitiatives,
+  rollCombatantInitiative,
+  startCombat
+} from "../core/hud-context";
+import { buildCombatView } from "../core/hud-context";
+import { logger } from "../core/logger";
+import { isNativeTrackerHidden, toggleNativeTracker } from "../core/native-tracker";
+import { getSettings } from "../core/settings";
+import { clampedPct, hpColor } from "../core/stats";
+import type { CombatView, PokemonRow } from "../types/index";
+
+const MODULE_ID = "pokemon-hud-combat";
+
+const ROW_KEYS = "pokemon-hud-combat.hud";
+
+/** Foundry's Handlebars renderer, used to build the bar off-DOM for in-place patching. */
+function renderBarTemplate(path: string, data: unknown): Promise<string> | null {
+  const render = (
+    globalThis as {
+      foundry?: {
+        applications?: {
+          handlebars?: { renderTemplate?: (p: string, d: unknown) => Promise<string> };
+        };
+      };
+    }
+  ).foundry?.applications?.handlebars?.renderTemplate;
+  return typeof render === "function" ? render(path, data) : null;
+}
+
+export interface TemplatePokemon {
+  combatantId: string | null;
+  name: string;
+  img: string;
+  hasHp: boolean;
+  hpCurrent: number;
+  hpMax: number;
+  hpPct: number;
+  hpClass: string;
+  initiativeText: string;
+  active: boolean;
+  defeated: boolean;
+}
+
+export interface TemplateGroup {
+  combatantId: string;
+  kind: "trainer" | "wild";
+  isTrainer: boolean;
+  name: string;
+  img: string;
+  initiative: number | null;
+  initiativeText: string;
+  hasInitiative: boolean;
+  defeated: boolean;
+  active: boolean;
+  rollable: boolean;
+  canRoll: boolean;
+  blockedKey: string | null;
+  pokemon: TemplatePokemon | null;
+}
+
+interface CombatHudContext
+  extends
+    foundry.applications.api.HandlebarsApplicationMixin.RenderContext,
+    foundry.applications.api.ApplicationV2.RenderContext {
+  present: boolean;
+  started: boolean;
+  round: number;
+  turn: number;
+  statusLabel: string;
+  isGM: boolean;
+  nativeHidden: boolean;
+  groups: TemplateGroup[];
+  hasGroups: boolean;
+}
+
+interface CombatHudConfiguration
+  extends
+    foundry.applications.api.HandlebarsApplicationMixin.Configuration,
+    foundry.applications.api.ApplicationV2.Configuration {}
+
+interface CombatHudRenderOptions
+  extends
+    foundry.applications.api.HandlebarsApplicationMixin.RenderOptions,
+    foundry.applications.api.ApplicationV2.RenderOptions {}
+
+function initiativeText(initiative: number | null): string {
+  return typeof initiative === "number" ? String(initiative) : "—";
+}
+
+function pokemonRow(pokemon: PokemonRow): TemplatePokemon {
+  const hasHp = pokemon.hp !== null && pokemon.hp.max > 0;
+  const pct = hasHp ? clampedPct(pokemon.hp?.current ?? 0, pokemon.hp?.max ?? 0) : 0;
+  return {
+    combatantId: pokemon.combatantId,
+    name: pokemon.name,
+    img: pokemon.img,
+    hasHp,
+    hpCurrent: pokemon.hp?.current ?? 0,
+    hpMax: pokemon.hp?.max ?? 0,
+    hpPct: Math.round(pct * 100),
+    hpClass: hpColor(pct),
+    initiativeText: initiativeText(pokemon.initiative),
+    active: pokemon.active,
+    defeated: pokemon.defeated
+  };
+}
+
+function toTemplateGroups(view: CombatView): TemplateGroup[] {
+  return view.groups.map((group) => ({
+    combatantId: group.combatantId,
+    kind: group.kind,
+    isTrainer: group.kind === "trainer",
+    name: group.name,
+    img: group.img,
+    initiative: group.initiative,
+    initiativeText: initiativeText(group.initiative),
+    hasInitiative: typeof group.initiative === "number",
+    defeated: group.defeated,
+    active: group.active || group.pokemon?.active === true,
+    rollable: group.rollable,
+    canRoll: canUserRoll(group.combatantId),
+    blockedKey: group.blockedKey,
+    pokemon: group.pokemon ? pokemonRow(group.pokemon) : null
+  }));
+}
+
+/** Players only see the dice button on combatants they are allowed to update. */
+function canUserRoll(combatantId: string): boolean {
+  try {
+    const combatant = Array.from(game.combat?.combatants ?? []).find((c) => c.id === combatantId);
+    if (!combatant) return false;
+    if (game.user?.isGM) return true;
+    const canModify = (combatant as { canUserModify?: (user: User, action: string) => boolean })
+      .canUserModify;
+    return typeof canModify === "function" ? canModify.call(combatant, game.user, "update") : true;
+  } catch {
+    return true;
+  }
+}
+
+function statusLabel(view: CombatView): string {
+  if (!view.present) return game.i18n.localize(`${ROW_KEYS}.noCombat`);
+  if (!view.started) return game.i18n.localize(`${ROW_KEYS}.notStarted`);
+  return game.i18n.format(`${ROW_KEYS}.status`, { round: view.round, turn: view.turn });
+}
+
+export class CombatHudApp extends foundry.applications.api.HandlebarsApplicationMixin(
+  foundry.applications.api.ApplicationV2
+)<CombatHudContext, CombatHudConfiguration, CombatHudRenderOptions> {
+  static override DEFAULT_OPTIONS: DeepPartial<CombatHudConfiguration> = {
+    id: `${MODULE_ID}.bar`,
+    tag: "section",
+    classes: [MODULE_ID, "phc-top-bar", "phc-bar"],
+    window: {
+      title: `${ROW_KEYS}.title`,
+      resizable: false,
+      frame: false
+    },
+    position: {
+      width: 960,
+      height: "auto"
+    }
+  };
+
+  static override PARTS: Record<
+    string,
+    foundry.applications.api.HandlebarsApplicationMixin.HandlebarsTemplatePart
+  > = {
+    bar: {
+      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.1.0.hbs`,
+      id: `${MODULE_ID}-bar`,
+      root: true
+    }
+  };
+
+  #onResizeBound?: () => void;
+  #resizeObserver?: ResizeObserver;
+
+  override async _prepareContext(
+    _options: DeepPartial<CombatHudRenderOptions> & { isFirstRender?: boolean }
+  ): Promise<CombatHudContext> {
+    const view = buildCombatView();
+    const groups = toTemplateGroups(view);
+    return {
+      present: view.present,
+      started: view.started,
+      round: view.round,
+      turn: view.turn,
+      statusLabel: statusLabel(view),
+      isGM: game.user?.isGM === true,
+      nativeHidden: isNativeTrackerHidden(),
+      groups,
+      hasGroups: groups.length > 0
+    };
+  }
+
+  protected override async _onFirstRender(
+    _context: DeepPartial<CombatHudContext>,
+    _options: DeepPartial<CombatHudRenderOptions>
+  ): Promise<void> {
+    try {
+      await super._onFirstRender(_context, _options);
+    } catch (err) {
+      this.#handleError("_onFirstRender", err);
+    }
+    try {
+      this.element.addEventListener("click", this.#onClick);
+      this.#bindPositioning();
+    } catch (err) {
+      this.#handleError("bind events", err);
+    }
+  }
+
+  protected override async _onRender(
+    _context: DeepPartial<CombatHudContext>,
+    _options: DeepPartial<CombatHudRenderOptions>
+  ): Promise<void> {
+    try {
+      await super._onRender(_context, _options);
+      this.#applyRenderEffects();
+    } catch (err) {
+      this.#handleError("_onRender", err);
+    }
+  }
+
+  override _onClose(options: DeepPartial<CombatHudRenderOptions>): void {
+    this.#unbindPositioning();
+    if (activeInstance === this) activeInstance = null;
+    super._onClose(options);
+  }
+
+  #onClick = (event: Event): void => {
+    const target = event.target as HTMLElement | null;
+    const button = target?.closest<HTMLElement>("[data-action]");
+    if (!button) return;
+    const action = button.dataset.action;
+    if (!action) return;
+    if (action === "roll-initiative") void this.#onRollInitiative(button);
+    else if (action === "roll-all") void this.#onRollAll();
+    else if (action === "focus-combatant") this.#onFocusCombatant(button);
+    else if (action === "start-combat") void this.#onStartCombat();
+    else if (action === "next-turn") void this.#onNextTurn();
+    else if (action === "previous-turn") void this.#onPreviousTurn();
+    else if (action === "end-combat") void this.#onEndCombat();
+    else if (action === "toggle-native") void this.#onToggleNative();
+  };
+
+  async #onRollInitiative(element: HTMLElement): Promise<void> {
+    const combatantId = element.dataset.combatantId;
+    if (!combatantId) return;
+    try {
+      await rollCombatantInitiative(combatantId);
+    } catch (err) {
+      this.#handleError("roll-initiative", err);
+    }
+    await this.refreshInPlace();
+  }
+
+  async #onRollAll(): Promise<void> {
+    if (!game.user?.isGM) return;
+    try {
+      await rollAllInitiatives();
+    } catch (err) {
+      this.#handleError("roll-all", err);
+    }
+    await this.refreshInPlace();
+  }
+
+  #onFocusCombatant(element: HTMLElement): void {
+    const combatantId = element.dataset.combatantId;
+    const combatant = combatantId
+      ? Array.from(game.combat?.combatants ?? []).find((c) => c.id === combatantId)
+      : undefined;
+    try {
+      const center = (
+        combatant?.token as { object?: { center?: { x: number; y: number } } } | undefined
+      )?.object?.center;
+      if (!center) return;
+      void (
+        canvas as { animatePan?: (opts: { x: number; y: number }) => Promise<unknown> }
+      ).animatePan?.({ x: center.x, y: center.y });
+    } catch (err) {
+      this.#handleError("focus-combatant", err);
+    }
+  }
+
+  async #onStartCombat(): Promise<void> {
+    if (!game.user?.isGM) return;
+    try {
+      await startCombat();
+    } catch (err) {
+      this.#handleError("start-combat", err);
+    }
+    await this.refreshInPlace();
+  }
+
+  async #onNextTurn(): Promise<void> {
+    if (!game.user?.isGM) return;
+    try {
+      await nextTurn();
+    } catch (err) {
+      this.#handleError("next-turn", err);
+    }
+    await this.refreshInPlace();
+  }
+
+  async #onPreviousTurn(): Promise<void> {
+    if (!game.user?.isGM) return;
+    try {
+      await previousTurn();
+    } catch (err) {
+      this.#handleError("previous-turn", err);
+    }
+    await this.refreshInPlace();
+  }
+
+  async #onEndCombat(): Promise<void> {
+    if (!game.user?.isGM) return;
+    let confirmed = true;
+    try {
+      const DialogV2 = (
+        foundry.applications.api as unknown as {
+          DialogV2?: {
+            confirm?: (options: Record<string, unknown>) => Promise<boolean>;
+          };
+        }
+      ).DialogV2;
+      if (DialogV2?.confirm) {
+        confirmed = await DialogV2.confirm({
+          window: { title: game.i18n.localize(`${ROW_KEYS}.endCombat`) },
+          content: `<p>${game.i18n.localize(`${ROW_KEYS}.endCombatConfirm`)}</p>`,
+          yes: { default: true },
+          rejectClose: false
+        });
+      }
+    } catch (err) {
+      logger.warn(`end-combat confirm: ${String(err)}`);
+    }
+    if (!confirmed) return;
+    try {
+      await endCombat();
+    } catch (err) {
+      this.#handleError("end-combat", err);
+    }
+  }
+
+  async #onToggleNative(): Promise<void> {
+    toggleNativeTracker();
+    await this.refreshInPlace();
+  }
+
+  /** Rebuild the view off-DOM and diff it into the live bar (no flicker). */
+  async refreshInPlace(): Promise<void> {
+    if (!this.rendered || !this.element?.isConnected) return;
+    let html: string | null;
+    try {
+      html = await renderBarTemplate(
+        CombatHudApp.PARTS.bar.template,
+        await this._prepareContext({ isFirstRender: false })
+      );
+    } catch (err) {
+      this.#handleError("refreshInPlace", err);
+      return;
+    }
+    if (!html) {
+      await this.render({ force: true });
+      return;
+    }
+    const freshRoot = new DOMParser().parseFromString(html, "text/html").body.firstElementChild;
+    if (!freshRoot) {
+      await this.render({ force: true });
+      return;
+    }
+    patchChildren(this.element, freshRoot);
+    this.#applyRenderEffects();
+  }
+
+  /** Everything `_onRender` does once the markup exists; patches need it too. */
+  #applyRenderEffects(): void {
+    try {
+      this.#applyThemeClass();
+      this.#positionBar();
+      this.#repositionAfterRender();
+    } catch (err) {
+      this.#handleError("applyRenderEffects", err);
+    }
+  }
+
+  #applyThemeClass(): void {
+    if (this.element.classList.contains("themed")) return;
+    let raw = "";
+    try {
+      const scheme = game.settings.get("core", "uiConfig").colorScheme;
+      raw = scheme.applications || scheme.interface || "";
+    } catch {
+      raw = "";
+    }
+    const dark =
+      raw === "dark"
+        ? true
+        : raw === "light"
+          ? false
+          : matchMedia("(prefers-color-scheme: dark)").matches;
+    this.element.classList.toggle("theme-dark", dark);
+    this.element.classList.toggle("theme-light", !dark);
+  }
+
+  #handleError(where: string, err: unknown): void {
+    const detail = err instanceof Error ? err.message || err.stack : String(err);
+    logger.error(`${where}: ${detail}`);
+  }
+
+  /** Fixed top bar, centered over the canvas but never under the sidebar. */
+  #positionBar(): void {
+    const el = this.element;
+    if (!el.isConnected) return;
+    const margin = 8;
+    const sidebar = document.getElementById("sidebar");
+    const sidebarLeft =
+      sidebar && sidebar.offsetWidth > 0 ? sidebar.getBoundingClientRect().left : window.innerWidth;
+    const available = Math.max(320, sidebarLeft - margin * 2);
+
+    el.style.setProperty("max-width", `${available}px`, "important");
+    el.style.setProperty("width", "fit-content", "important");
+    const width = el.getBoundingClientRect().width;
+    const left = Math.max(margin, Math.round((sidebarLeft - width) / 2));
+    el.style.setProperty("left", `${left}px`, "important");
+    el.style.setProperty("top", `${margin}px`, "important");
+    el.style.setProperty("transform", "none", "important");
+  }
+
+  #repositionAfterRender(): void {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        try {
+          this.#positionBar();
+        } catch (err) {
+          this.#handleError("repositionAfterRender", err);
+        }
+      });
+    });
+  }
+
+  #bindPositioning(): void {
+    try {
+      this.#onResizeBound = () => this.#positionBar();
+      window.addEventListener("resize", this.#onResizeBound);
+      this.#resizeObserver = new ResizeObserver(this.#onResizeBound);
+      this.#resizeObserver.observe(this.element);
+      const sidebar = document.getElementById("sidebar");
+      if (sidebar) this.#resizeObserver.observe(sidebar);
+    } catch (err) {
+      this.#handleError("bind positioning", err);
+    }
+  }
+
+  #unbindPositioning(): void {
+    if (this.#onResizeBound) window.removeEventListener("resize", this.#onResizeBound);
+    this.#resizeObserver?.disconnect();
+    this.#resizeObserver = undefined;
+    this.#onResizeBound = undefined;
+  }
+}
+
+let activeInstance: CombatHudApp | null = null;
+let scheduledFlush: number | null = null;
+let pendingAction: "show" | "hide" | "refresh" | null = null;
+
+function flushSchedule(): void {
+  scheduledFlush = null;
+  const action = pendingAction;
+  pendingAction = null;
+  if (action === "show") {
+    if (!activeInstance) activeInstance = new CombatHudApp();
+    if (activeInstance.rendered) void activeInstance.refreshInPlace();
+    else void activeInstance.render({ force: true });
+    return;
+  }
+  if (action === "hide") {
+    const app = activeInstance;
+    activeInstance = null;
+    if (app) void app.close();
+    return;
+  }
+  if (action === "refresh") void activeInstance?.refreshInPlace();
+}
+
+function schedule(action: "show" | "hide" | "refresh"): void {
+  if (action === "hide") pendingAction = "hide";
+  else if (action === "show") pendingAction = "show";
+  else if (pendingAction !== "hide" && pendingAction !== "show") pendingAction = "refresh";
+  if (scheduledFlush !== null) return;
+  scheduledFlush = requestAnimationFrame(flushSchedule);
+}
+
+export function isCombatHudVisible(): boolean {
+  return activeInstance?.rendered === true;
+}
+
+/** Show the bar (coalesced into one patch per frame). */
+export function showCombatHud(): void {
+  if (!getSettings().enabled) return;
+  schedule("show");
+}
+
+export function hideCombatHud(): void {
+  schedule("hide");
+}
+
+export function refreshCombatHud(): void {
+  if (!activeInstance) return;
+  schedule("refresh");
+}
+
+/** Auto behaviour: show while a Combat exists, hide when it is deleted. */
+export function syncCombatHud(): void {
+  const settings = getSettings();
+  if (!settings.enabled) {
+    hideCombatHud();
+    return;
+  }
+  if (!game.combat) {
+    hideCombatHud();
+    return;
+  }
+  if (settings.autoShow) showCombatHud();
+}
+
+/** Keybinding entry point: cancel any pending flush and flip immediately. */
+export function toggleCombatHud(): void {
+  if (!getSettings().enabled) return;
+  if (scheduledFlush !== null) {
+    cancelAnimationFrame(scheduledFlush);
+    scheduledFlush = null;
+    pendingAction = null;
+  }
+  if (activeInstance) {
+    const app = activeInstance;
+    activeInstance = null;
+    void app.close();
+    return;
+  }
+  activeInstance = new CombatHudApp();
+  void activeInstance.render({ force: true });
+}

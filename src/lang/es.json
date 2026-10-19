@@ -1,0 +1,56 @@
+{
+  "pokemon-hud-combat": {
+    "hud": {
+      "title": "Rastreador de combate",
+      "status": "Ronda {round} · Turno {turn}",
+      "notStarted": "Combate sin iniciar",
+      "noCombat": "No hay ningún combate activo",
+      "rollInitiative": "Tirar iniciativa",
+      "rolled": "Iniciativa {initiative}",
+      "rollAll": "Tirar iniciativa para todos",
+      "startCombat": "Iniciar combate",
+      "nextTurn": "Siguiente turno",
+      "previousTurn": "Turno anterior",
+      "endCombat": "Terminar combate",
+      "endCombatConfirm": "¿Terminar el combate actual?",
+      "toggleNative": "Mostrar/ocultar el rastreador de Foundry",
+      "focus": "Centrar en el token",
+      "trainer": "Entrenador",
+      "wild": "Pokémon salvaje",
+      "blocked": "Este entrenador necesita un Pokémon activo",
+      "emptyCombat": "Añade combatientes al combate para verlos aquí",
+      "activePokemon": "Pokémon activo"
+    },
+    "error": {
+      "noActivePokemon": "Ese entrenador no tiene un Pokémon activo: invoca uno antes de tirar iniciativa."
+    },
+    "settings": {
+      "enabled": {
+        "name": "Activar el HUD de combate",
+        "hint": "Interruptor general de la barra superior y de la regla de iniciativa."
+      },
+      "autoShow": {
+        "name": "Mostrar automáticamente",
+        "hint": "Abre el HUD de combate siempre que exista un combate."
+      },
+      "hideNativeTracker": {
+        "name": "Ocultar el rastreador de Foundry",
+        "hint": "Quita la pestaña de Combate de la barra lateral. Puedes alternarla temporalmente desde el HUD."
+      },
+      "gmBypass": {
+        "name": "El DJ ignora la regla de iniciativa",
+        "hint": "Permite al DJ tirar iniciativa para un entrenador sin Pokémon activo."
+      },
+      "debug": {
+        "name": "Registro de depuración",
+        "hint": "Muestra diagnósticos extra en la consola del navegador."
+      }
+    },
+    "keybindings": {
+      "toggle": {
+        "name": "Alternar el HUD de combate",
+        "hint": "Muestra u oculta la barra de combate estilo Pokémon."
+      }
+    }
+  }
+}

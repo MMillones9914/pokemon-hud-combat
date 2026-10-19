@@ -1,0 +1,108 @@
+<section class="phc-bar">
+  <header class="phc-bar__head">
+    <div class="phc-logo" aria-hidden="true">
+      <i class="fa-solid fa-bolt"></i>
+    </div>
+    <div class="phc-status">
+      <span class="phc-status__label">{{statusLabel}}</span>
+      <span class="phc-status__hint">{{localize "pokemon-hud-combat.hud.title"}}</span>
+    </div>
+
+    {{#if isGM}}
+    <div class="phc-controls">
+      {{#unless started}}
+      <button class="phc-btn" type="button" data-action="start-combat"
+              data-tooltip="{{localize 'pokemon-hud-combat.hud.startCombat'}}">
+        <i class="fa-solid fa-play"></i>
+      </button>
+      {{/unless}}
+      {{#if started}}
+      <button class="phc-btn" type="button" data-action="previous-turn"
+              data-tooltip="{{localize 'pokemon-hud-combat.hud.previousTurn'}}">
+        <i class="fa-solid fa-chevron-left"></i>
+      </button>
+      <button class="phc-btn" type="button" data-action="next-turn"
+              data-tooltip="{{localize 'pokemon-hud-combat.hud.nextTurn'}}">
+        <i class="fa-solid fa-chevron-right"></i>
+      </button>
+      {{/if}}
+      <button class="phc-btn" type="button" data-action="roll-all"
+              data-tooltip="{{localize 'pokemon-hud-combat.hud.rollAll'}}">
+        <i class="fa-solid fa-dice-d20"></i>
+      </button>
+      <button class="phc-btn" type="button" data-action="toggle-native"
+              data-tooltip="{{localize 'pokemon-hud-combat.hud.toggleNative'}}">
+        <i class="fa-solid fa-table-list"></i>
+      </button>
+      <button class="phc-btn phc-btn--danger" type="button" data-action="end-combat"
+              data-tooltip="{{localize 'pokemon-hud-combat.hud.endCombat'}}">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    {{/if}}
+  </header>
+
+  <div class="phc-rows">
+    {{#if hasGroups}}
+      {{#each groups}}
+      <article class="phc-card phc-card--{{kind}}{{#if active}} phc-card--active{{/if}}{{#if defeated}} phc-card--defeated{{/if}}"
+               data-action="focus-combatant" data-combatant-id="{{combatantId}}">
+        <div class="phc-card__line">
+          <div class="phc-card__portrait">
+            <img src="{{img}}" alt="{{name}}" />
+          </div>
+          <div class="phc-card__meta">
+            <span class="phc-card__name">{{name}}</span>
+            <span class="phc-card__role">
+              {{#if isTrainer}}{{localize "pokemon-hud-combat.hud.trainer"}}{{else}}{{localize "pokemon-hud-combat.hud.wild"}}{{/if}}
+            </span>
+          </div>
+
+          <span class="phc-init{{#unless hasInitiative}} phc-init--pending{{/unless}}"
+                data-tooltip="{{localize 'pokemon-hud-combat.hud.rolled' initiative=initiativeText}}">
+            {{initiativeText}}
+          </span>
+
+          {{#unless hasInitiative}}
+            {{#if rollable}}
+              {{#if canRoll}}
+              <button class="phc-roll" type="button" data-action="roll-initiative"
+                      data-combatant-id="{{combatantId}}"
+                      data-tooltip="{{localize 'pokemon-hud-combat.hud.rollInitiative'}}">
+                <i class="fa-solid fa-dice-d20"></i>
+              </button>
+              {{/if}}
+            {{else}}
+            <span class="phc-blocked" data-tooltip="{{localize blockedKey}}">
+              <i class="fa-solid fa-lock"></i>
+            </span>
+            {{/if}}
+          {{/unless}}
+        </div>
+
+        {{#if pokemon}}
+        <div class="phc-poke{{#if pokemon.active}} phc-poke--active{{/if}}{{#if pokemon.defeated}} phc-poke--defeated{{/if}}">
+          <img class="phc-poke__img" src="{{pokemon.img}}" alt="{{pokemon.name}}" />
+          <div class="phc-poke__meta">
+            <span class="phc-poke__name">{{pokemon.name}}</span>
+            {{#if pokemon.hasHp}}
+            <div class="phc-hp {{pokemon.hpClass}}">
+              <span class="phc-hp__fill" style="width: {{pokemon.hpPct}}%"></span>
+            </div>
+            <span class="phc-poke__hp">{{pokemon.hpCurrent}} / {{pokemon.hpMax}}</span>
+            {{/if}}
+          </div>
+          <span class="phc-poke__init" data-tooltip="{{localize 'pokemon-hud-combat.hud.rolled' initiative=pokemon.initiativeText}}">
+            {{pokemon.initiativeText}}
+          </span>
+        </div>
+        {{/if}}
+      </article>
+      {{/each}}
+    {{else}}
+      <div class="phc-empty">
+        {{#if present}}{{localize "pokemon-hud-combat.hud.emptyCombat"}}{{else}}{{localize "pokemon-hud-combat.hud.noCombat"}}{{/if}}
+      </div>
+    {{/if}}
+  </div>
+</section>

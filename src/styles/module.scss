@@ -1,0 +1,484 @@
+:root {
+  --phc-font: "Signika", "Alegreya SC", sans-serif;
+  --phc-radius: 10px;
+  --phc-radius-sm: 6px;
+  --phc-radius-pill: 999px;
+
+  --phc-text: #f4ecdd;
+  --phc-text-dim: #b9ab92;
+  --phc-text-muted: #857865;
+
+  --phc-bg: rgba(16, 14, 11, 0.96);
+  --phc-bg-deep: rgba(10, 9, 7, 0.98);
+  --phc-card: rgba(36, 32, 25, 0.94);
+  --phc-card-alt: rgba(27, 24, 19, 0.94);
+  --phc-hover: rgba(255, 255, 255, 0.06);
+
+  --phc-border: rgba(170, 148, 104, 0.28);
+  --phc-border-strong: rgba(230, 200, 120, 0.4);
+
+  --phc-accent: #ee1515;
+  --phc-accent-soft: rgba(238, 21, 21, 0.18);
+  --phc-gold: #e8c76a;
+
+  --phc-hp-high: #6abb4a;
+  --phc-hp-mid: #e6c233;
+  --phc-hp-low: #e04848;
+
+  --phc-transition: 0.16s ease;
+}
+
+/* ------------------------------------------------------------------ */
+/* Root window (ApplicationV2) — fixed top bar, never token-anchored.  */
+/* ------------------------------------------------------------------ */
+
+[id="pokemon-hud-combat.bar"],
+[class*="pokemon-hud-combat"][class*="phc-top-bar"] {
+  position: fixed !important;
+  top: 8px !important;
+  bottom: auto !important;
+  width: auto !important;
+  max-width: calc(100vw - 16px) !important;
+  height: auto !important;
+  z-index: 90;
+  font-family: var(--phc-font);
+  color: var(--phc-text);
+}
+
+[id="pokemon-hud-combat.bar"] .window-content,
+[class*="pokemon-hud-combat"][class*="phc-top-bar"] .window-content {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+@media (max-width: 768px), (pointer: coarse) {
+  [id="pokemon-hud-combat.bar"],
+  [class*="pokemon-hud-combat"][class*="phc-top-bar"] {
+    display: none !important;
+  }
+}
+
+/* Hide Foundry's own Combat Tracker tab + panel (setting / HUD toggle). */
+body.phc-native-hidden #sidebar [data-tab="combat"] {
+  display: none !important;
+}
+
+/* ------------------------------------------------------------------ */
+/* Bar                                                                 */
+/* ------------------------------------------------------------------ */
+
+.phc-bar {
+  position: relative;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px 10px;
+  background: linear-gradient(
+    180deg,
+    rgba(30, 26, 20, 0.98) 0%,
+    var(--phc-bg) 60%,
+    var(--phc-bg-deep) 100%
+  );
+  border: 1px solid var(--phc-border);
+  border-top: none;
+  border-radius: 0 0 var(--phc-radius) var(--phc-radius);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.45),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(6px);
+}
+
+.phc-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--phc-accent), transparent);
+  opacity: 0.85;
+}
+
+/* ------------------------------------------------------------------ */
+/* Header                                                              */
+/* ------------------------------------------------------------------ */
+
+.phc-bar__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 30px;
+}
+
+.phc-logo {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--phc-radius-pill);
+  background: radial-gradient(circle at 35% 30%, #ff5a5a, var(--phc-accent) 65%);
+  color: #fff;
+  font-size: 12px;
+  box-shadow: 0 0 10px var(--phc-accent-soft);
+  flex: 0 0 auto;
+}
+
+.phc-status {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.phc-status__label {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--phc-gold);
+  white-space: nowrap;
+}
+
+.phc-status__hint {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--phc-text-muted);
+  white-space: nowrap;
+}
+
+.phc-controls {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.phc-btn {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--phc-border);
+  border-radius: var(--phc-radius-sm);
+  background: var(--phc-card-alt);
+  color: var(--phc-text-dim);
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    background var(--phc-transition),
+    color var(--phc-transition),
+    border-color var(--phc-transition);
+}
+
+.phc-btn:hover {
+  background: var(--phc-hover);
+  color: var(--phc-text);
+  border-color: var(--phc-border-strong);
+}
+
+.phc-btn--danger:hover {
+  color: #fff;
+  background: rgba(224, 72, 72, 0.35);
+  border-color: rgba(224, 72, 72, 0.6);
+}
+
+/* ------------------------------------------------------------------ */
+/* Rows of cards (horizontal scroll when combat is crowded)            */
+/* ------------------------------------------------------------------ */
+
+.phc-rows {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--phc-border) transparent;
+}
+
+.phc-rows::-webkit-scrollbar {
+  height: 5px;
+}
+
+.phc-rows::-webkit-scrollbar-thumb {
+  background: var(--phc-border);
+  border-radius: var(--phc-radius-pill);
+}
+
+.phc-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  width: 168px;
+  padding: 6px;
+  gap: 5px;
+  background: var(--phc-card);
+  border: 1px solid var(--phc-border);
+  border-radius: var(--phc-radius-sm);
+  cursor: pointer;
+  transition:
+    border-color var(--phc-transition),
+    box-shadow var(--phc-transition),
+    transform var(--phc-transition);
+}
+
+.phc-card:hover {
+  border-color: var(--phc-border-strong);
+}
+
+.phc-card--wild {
+  background: linear-gradient(180deg, rgba(44, 36, 24, 0.95), var(--phc-card-alt));
+}
+
+.phc-card--active {
+  border-color: var(--phc-gold);
+  box-shadow:
+    0 0 0 1px var(--phc-gold),
+    0 0 14px rgba(232, 199, 106, 0.28);
+  transform: translateY(1px);
+}
+
+.phc-card--defeated {
+  opacity: 0.55;
+  filter: grayscale(0.6);
+}
+
+.phc-card__line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.phc-card__portrait {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border-radius: var(--phc-radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--phc-border);
+  background: var(--phc-bg-deep);
+}
+
+.phc-card__portrait img,
+.phc-poke__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: none;
+}
+
+.phc-card__meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.phc-card__name {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.phc-card__role {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--phc-text-muted);
+}
+
+.phc-init {
+  display: grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 5px;
+  border-radius: var(--phc-radius-sm);
+  border: 1px solid var(--phc-border-strong);
+  background: rgba(232, 199, 106, 0.1);
+  color: var(--phc-gold);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  flex: 0 0 auto;
+}
+
+.phc-init--pending {
+  color: var(--phc-text-muted);
+  border-color: var(--phc-border);
+  background: transparent;
+}
+
+.phc-roll {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--phc-accent);
+  border-radius: var(--phc-radius-sm);
+  background: var(--phc-accent-soft);
+  color: #ff8f8f;
+  font-size: 12px;
+  cursor: pointer;
+  flex: 0 0 auto;
+  transition:
+    background var(--phc-transition),
+    color var(--phc-transition),
+    transform var(--phc-transition);
+}
+
+.phc-roll:hover {
+  background: var(--phc-accent);
+  color: #fff;
+  transform: rotate(-12deg);
+}
+
+.phc-blocked {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  color: var(--phc-text-muted);
+  font-size: 11px;
+  border-radius: var(--phc-radius-sm);
+  border: 1px dashed var(--phc-border);
+}
+
+/* ------------------------------------------------------------------ */
+/* Nested active Pokémon (always directly below its trainer)           */
+/* ------------------------------------------------------------------ */
+
+.phc-poke {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 5px;
+  border-radius: var(--phc-radius-sm);
+  border: 1px solid rgba(170, 148, 104, 0.16);
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.phc-poke--active {
+  border-color: var(--phc-accent);
+  background: var(--phc-accent-soft);
+}
+
+.phc-poke--defeated {
+  opacity: 0.5;
+  filter: grayscale(0.7);
+}
+
+.phc-poke__img {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  border-radius: 5px;
+  border: 1px solid var(--phc-border);
+  background: var(--phc-bg-deep);
+}
+
+.phc-poke__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.phc-poke__name {
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.phc-poke__hp {
+  font-size: 9px;
+  color: var(--phc-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.phc-poke__init {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--phc-text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.phc-hp {
+  position: relative;
+  width: 100%;
+  height: 5px;
+  border-radius: var(--phc-radius-pill);
+  background: rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+
+.phc-hp__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--phc-hp-high);
+  transition: width var(--phc-transition);
+}
+
+.phc-hp.hp-mid .phc-hp__fill {
+  background: var(--phc-hp-mid);
+}
+
+.phc-hp.hp-low .phc-hp__fill {
+  background: var(--phc-hp-low);
+}
+
+/* ------------------------------------------------------------------ */
+/* Empty state                                                         */
+/* ------------------------------------------------------------------ */
+
+.phc-empty {
+  display: grid;
+  place-items: center;
+  min-width: 260px;
+  min-height: 46px;
+  padding: 8px 14px;
+  border: 1px dashed var(--phc-border);
+  border-radius: var(--phc-radius-sm);
+  color: var(--phc-text-muted);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+/* ------------------------------------------------------------------ */
+/* Light theme                                                         */
+/* ------------------------------------------------------------------ */
+
+.phc-bar.theme-light {
+  --phc-text: #2a241b;
+  --phc-text-dim: #5a4f3f;
+  --phc-text-muted: #8a7d68;
+  --phc-bg: rgba(247, 242, 231, 0.97);
+  --phc-bg-deep: rgba(240, 234, 221, 0.98);
+  --phc-card: rgba(255, 253, 247, 0.96);
+  --phc-card-alt: rgba(245, 239, 227, 0.96);
+  --phc-border: rgba(120, 100, 64, 0.28);
+  --phc-accent-soft: rgba(238, 21, 21, 0.1);
+
+  background: linear-gradient(180deg, #fffdf7 0%, var(--phc-bg) 60%, var(--phc-bg-deep) 100%);
+  box-shadow:
+    0 10px 22px rgba(90, 70, 40, 0.18),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.04);
+}
+
+.phc-bar.theme-light .phc-poke {
+  background: rgba(120, 100, 64, 0.08);
+}

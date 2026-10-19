@@ -1,0 +1,56 @@
+{
+  "pokemon-hud-combat": {
+    "hud": {
+      "title": "Combat tracker",
+      "status": "Round {round} · Turn {turn}",
+      "notStarted": "Combat not started",
+      "noCombat": "No active combat",
+      "rollInitiative": "Roll initiative",
+      "rolled": "Initiative {initiative}",
+      "rollAll": "Roll initiative for everyone",
+      "startCombat": "Start combat",
+      "nextTurn": "Next turn",
+      "previousTurn": "Previous turn",
+      "endCombat": "End combat",
+      "endCombatConfirm": "End the current combat?",
+      "toggleNative": "Show/hide Foundry's combat tracker",
+      "focus": "Center on token",
+      "trainer": "Trainer",
+      "wild": "Wild Pokémon",
+      "blocked": "This trainer needs an active Pokémon",
+      "emptyCombat": "Add combatants to the combat to see them here",
+      "activePokemon": "Active Pokémon"
+    },
+    "error": {
+      "noActivePokemon": "That trainer has no active Pokémon: summon one before rolling initiative."
+    },
+    "settings": {
+      "enabled": {
+        "name": "Enable combat HUD",
+        "hint": "Master switch for the top combat bar and the initiative rule."
+      },
+      "autoShow": {
+        "name": "Show automatically",
+        "hint": "Open the combat HUD whenever a combat exists."
+      },
+      "hideNativeTracker": {
+        "name": "Hide Foundry's combat tracker",
+        "hint": "Remove the native Combat tab from the sidebar. You can flip it temporarily from the HUD."
+      },
+      "gmBypass": {
+        "name": "GMs bypass the initiative rule",
+        "hint": "Let the GM roll initiative for a trainer without an active Pokémon."
+      },
+      "debug": {
+        "name": "Debug logging",
+        "hint": "Print extra diagnostics to the browser console."
+      }
+    },
+    "keybindings": {
+      "toggle": {
+        "name": "Toggle combat HUD",
+        "hint": "Show or hide the Pokémon-style combat bar."
+      }
+    }
+  }
+}
