@@ -2,11 +2,6 @@
   "pokemon-hud-combat": {
     "hud": {
       "title": "Combat tracker",
-      "status": "Round {round} · Turn {turn}",
-      "notStarted": "Combat not started",
-      "noCombat": "No active combat",
-      "rollInitiative": "Roll initiative",
-      "rolled": "Initiative {initiative}",
       "rollAll": "Roll initiative for everyone",
       "startCombat": "Start combat",
       "nextTurn": "Next turn",
@@ -14,13 +9,6 @@
       "endCombat": "End combat",
       "endCombatConfirm": "End the current combat?",
       "toggleNative": "Show/hide Foundry's combat tracker",
-      "focus": "Center on token",
-      "trainer": "Trainer",
-      "wild": "Wild Pokémon",
-      "blocked": "This trainer needs an active Pokémon",
-      "emptyCombat": "Add combatants to the combat to see them here",
-      "activePokemon": "Active Pokémon",
-      "emptyDrawer": "No active Pokémon",
       "rollHint": "Click: roll initiative · Alt: advantage · Ctrl: disadvantage"
     },
     "error": {

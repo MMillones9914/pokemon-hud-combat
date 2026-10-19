@@ -1,39 +1,23 @@
 :root {
   --phc-font: "Signika", "Alegreya SC", sans-serif;
-  --phc-radius: 10px;
   --phc-radius-sm: 6px;
-  --phc-radius-pill: 999px;
 
-  --phc-text: #f4ecdd;
-  --phc-text-dim: #b9ab92;
-  --phc-text-muted: #857865;
+  /* Token frame: the only fill in the whole bar, painted over each token. */
+  --phc-token-bg: rgba(6, 6, 6, 0.72);
 
-  --phc-bg: rgba(16, 14, 11, 0.96);
-  --phc-bg-deep: rgba(10, 9, 7, 0.98);
-  --phc-card: rgba(36, 32, 25, 0.94);
-  --phc-card-alt: rgba(27, 24, 19, 0.94);
-  --phc-hover: rgba(255, 255, 255, 0.06);
+  /* Faction borders: ally = white, enemy = dark grey, neutral = mid grey. */
+  --phc-ally: #ffffff;
+  --phc-enemy: #454545;
+  --phc-neutral: #7d7d7d;
+  --phc-slot: #5f5f5f;
 
-  --phc-border: rgba(170, 148, 104, 0.28);
-  --phc-border-strong: rgba(230, 200, 120, 0.4);
-
-  --phc-accent: #ee1515;
-  --phc-accent-soft: rgba(238, 21, 21, 0.18);
   --phc-gold: #e8c76a;
-
-  /* Faction borders: ally = celeste, enemy = red. */
-  --phc-ally: #63c7f5;
-  --phc-ally-soft: rgba(99, 199, 245, 0.32);
-  --phc-enemy: #e04848;
-  --phc-enemy-soft: rgba(224, 72, 72, 0.4);
-
-  --phc-hp-high: #6abb4a;
-  --phc-hp-mid: #e6c233;
-  --phc-hp-low: #e04848;
+  --phc-icon: #ffffff;
+  --phc-icon-dim: #b9b9b9;
+  --phc-btn-border: rgba(255, 255, 255, 0.55);
 
   /* Portrait is 3:4 (portrait orientation), width drives the card size. */
   --phc-portrait-w: 84px;
-  --phc-drawer-text: #f4ecdd;
 
   --phc-transition: 0.16s ease;
 }
@@ -52,7 +36,7 @@
   height: auto !important;
   z-index: 90;
   font-family: var(--phc-font);
-  color: var(--phc-text);
+  color: var(--phc-icon);
 }
 
 [id="pokemon-hud-combat.bar"] .window-content,
@@ -77,7 +61,7 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
 }
 
 /* ------------------------------------------------------------------ */
-/* Bar                                                                 */
+/* Bar — flat: no background, no frame, no shadow                      */
 /* ------------------------------------------------------------------ */
 
 .phc-bar {
@@ -86,48 +70,21 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 8px 10px 10px;
-  background: linear-gradient(
-    180deg,
-    rgba(30, 26, 20, 0.98) 0%,
-    var(--phc-bg) 60%,
-    var(--phc-bg-deep) 100%
-  );
-  border: 1px solid var(--phc-border);
-  border-top: none;
-  border-radius: 0 0 var(--phc-radius) var(--phc-radius);
-  box-shadow:
-    0 12px 28px rgba(0, 0, 0, 0.45),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(6px);
-}
-
-.phc-bar::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--phc-accent), transparent);
-  opacity: 0.85;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 /* ------------------------------------------------------------------ */
-/* Body: GM controls at the far left, then status + combatant cards    */
+/* Body: GM controls at the far left, then the token cards             */
 /* ------------------------------------------------------------------ */
 
 .phc-bar__body {
   display: flex;
-  align-items: stretch;
+  align-items: flex-start;
   gap: 10px;
   min-width: 0;
-}
-
-.phc-main {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-  flex: 1 1 auto;
 }
 
 /* GM-only tracker options, leftmost of the whole combat. */
@@ -138,8 +95,6 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
   justify-content: center;
   gap: 4px;
   flex: 0 0 auto;
-  padding-right: 8px;
-  border-right: 1px solid var(--phc-border);
 }
 
 .phc-btn {
@@ -148,75 +103,25 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
   width: 26px;
   height: 26px;
   padding: 0;
-  border: 1px solid var(--phc-border);
+  border: 1px solid var(--phc-btn-border);
   border-radius: var(--phc-radius-sm);
-  background: var(--phc-card-alt);
-  color: var(--phc-text-dim);
+  background: transparent;
+  color: var(--phc-icon);
   font-size: 12px;
   cursor: pointer;
   transition:
-    background var(--phc-transition),
-    color var(--phc-transition),
-    border-color var(--phc-transition);
+    border-color var(--phc-transition),
+    color var(--phc-transition);
 }
 
 .phc-btn:hover {
-  background: var(--phc-hover);
-  color: var(--phc-text);
-  border-color: var(--phc-border-strong);
+  border-color: var(--phc-icon);
+  color: var(--phc-icon);
 }
 
 .phc-btn--danger:hover {
-  color: #fff;
-  background: rgba(224, 72, 72, 0.35);
-  border-color: rgba(224, 72, 72, 0.6);
-}
-
-/* ------------------------------------------------------------------ */
-/* Header                                                              */
-/* ------------------------------------------------------------------ */
-
-.phc-bar__head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 30px;
-}
-
-.phc-logo {
-  display: grid;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  border-radius: var(--phc-radius-pill);
-  background: radial-gradient(circle at 35% 30%, #ff5a5a, var(--phc-accent) 65%);
-  color: #fff;
-  font-size: 12px;
-  box-shadow: 0 0 10px var(--phc-accent-soft);
-  flex: 0 0 auto;
-}
-
-.phc-status {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-
-.phc-status__label {
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: var(--phc-gold);
-  white-space: nowrap;
-}
-
-.phc-status__hint {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--phc-text-muted);
-  white-space: nowrap;
+  border-color: var(--phc-enemy);
+  color: #ff8f8f;
 }
 
 /* ------------------------------------------------------------------ */
@@ -231,7 +136,7 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
   overflow-y: hidden;
   padding-bottom: 2px;
   scrollbar-width: thin;
-  scrollbar-color: var(--phc-border) transparent;
+  scrollbar-color: var(--phc-neutral) transparent;
 }
 
 .phc-rows::-webkit-scrollbar {
@@ -239,12 +144,12 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
 }
 
 .phc-rows::-webkit-scrollbar-thumb {
-  background: var(--phc-border);
-  border-radius: var(--phc-radius-pill);
+  background: var(--phc-neutral);
+  border-radius: 999px;
 }
 
 /* ------------------------------------------------------------------ */
-/* Combatant card: portrait (3:4) + summoned Pokémon drawer below      */
+/* Card — transparent: only the token frames below carry a border      */
 /* ------------------------------------------------------------------ */
 
 .phc-card {
@@ -254,84 +159,68 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
   flex-direction: column;
   align-items: stretch;
   flex: 0 0 auto;
-  width: calc(var(--phc-portrait-w) + 14px);
-  padding: 6px;
-  gap: 5px;
-  background: var(--phc-card);
-  border: 1px solid var(--phc-border);
-  border-radius: var(--phc-radius-sm);
+  width: calc(var(--phc-portrait-w) + 2px);
+  padding: 0;
+  gap: 4px;
+  background: transparent;
+  border: none;
   cursor: pointer;
-  transition:
-    transform var(--phc-transition),
-    box-shadow var(--phc-transition),
-    border-color var(--phc-transition);
 }
 
-.phc-card:hover {
-  transform: translateY(-2px);
-}
-
-.phc-card--wild {
-  background: linear-gradient(180deg, rgba(44, 36, 24, 0.95), var(--phc-card-alt));
-}
-
-/* Ally / enemy borders */
-.phc-card--ally {
-  border-color: var(--phc-ally);
-  box-shadow: 0 0 0 1px var(--phc-ally-soft);
-}
-
-.phc-card--enemy {
-  border-color: var(--phc-enemy);
-  box-shadow: 0 0 0 1px var(--phc-enemy-soft);
-}
-
-/* Turn marker: outline (not border) so the faction color stays visible. */
+/* Turn marker: an outline (not a background) so faction borders stay visible. */
 .phc-card--active {
   outline: 2px solid var(--phc-gold);
-  outline-offset: 1px;
-  box-shadow:
-    0 0 0 1px var(--phc-gold),
-    0 0 14px rgba(232, 199, 106, 0.3);
+  outline-offset: 2px;
 }
 
 .phc-card--defeated {
-  opacity: 0.55;
+  opacity: 0.5;
   filter: grayscale(0.6);
 }
 
-/* Portrait button — the roll/initiative control */
-.phc-portrait {
+/* Token frame — the only "background" in the bar, painted over the art. */
+.phc-token {
   position: relative;
   box-sizing: border-box;
   display: block;
-  width: 100%;
+  width: var(--phc-portrait-w);
   aspect-ratio: 3 / 4;
   padding: 0;
   margin: 0;
   overflow: hidden;
-  border: 1px solid var(--phc-border);
+  border: 1px solid var(--phc-neutral);
   border-radius: var(--phc-radius-sm);
-  background: var(--phc-bg-deep);
+  background: var(--phc-token-bg);
   color: inherit;
   font: inherit;
   cursor: pointer;
   transition: border-color var(--phc-transition);
 }
 
-.phc-portrait:hover {
-  border-color: var(--phc-border-strong);
+/* Ally = white border, enemy = dark grey border. */
+.phc-card--ally .phc-token {
+  border-color: var(--phc-ally);
 }
 
-.phc-portrait__img {
+.phc-card--enemy .phc-token {
+  border-color: var(--phc-enemy);
+}
+
+.phc-card--neutral .phc-token {
+  border-color: var(--phc-neutral);
+}
+
+/* Full token art — never cropped. */
+.phc-token__img {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   border: none;
+  background: transparent;
 }
 
-/* Initiative badge over the portrait */
+/* Initiative digits chip (over the token) */
 .phc-init {
   position: absolute;
   top: 3px;
@@ -342,8 +231,7 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
   height: 17px;
   padding: 0 4px;
   border-radius: 4px;
-  border: 1px solid var(--phc-border-strong);
-  background: rgba(10, 9, 7, 0.82);
+  background: rgba(0, 0, 0, 0.75);
   color: var(--phc-gold);
   font-size: 11px;
   font-weight: 700;
@@ -353,13 +241,20 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
 }
 
 .phc-init--pending {
-  color: var(--phc-text-muted);
-  border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(10, 9, 7, 0.7);
+  color: var(--phc-icon-dim);
+}
+
+.phc-init--mini {
+  min-width: 13px;
+  height: 13px;
+  padding: 0 2px;
+  font-size: 8px;
+  top: 2px;
+  right: 2px;
 }
 
 /* Dice hint shown on hover while initiative is pending */
-.phc-portrait__hint {
+.phc-token__hint {
   position: absolute;
   left: 50%;
   bottom: 6px;
@@ -368,9 +263,8 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  border: 1px solid var(--phc-accent);
-  background: rgba(10, 9, 7, 0.85);
-  color: #ff8f8f;
+  background: rgba(0, 0, 0, 0.8);
+  color: var(--phc-icon);
   font-size: 11px;
   transform: translateX(-50%) translateY(4px);
   opacity: 0;
@@ -380,13 +274,13 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
     transform var(--phc-transition);
 }
 
-.phc-portrait:hover .phc-portrait__hint {
+.phc-token:hover .phc-token__hint {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
 
 /* Locked trainer (no active Pokémon) */
-.phc-portrait__lock {
+.phc-token__lock {
   position: absolute;
   left: 50%;
   bottom: 6px;
@@ -395,16 +289,15 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  border: 1px dashed rgba(170, 148, 104, 0.55);
-  background: rgba(10, 9, 7, 0.8);
-  color: var(--phc-text-muted);
+  background: rgba(0, 0, 0, 0.8);
+  color: var(--phc-icon-dim);
   font-size: 10px;
   transform: translateX(-50%);
   pointer-events: none;
 }
 
 /* ------------------------------------------------------------------ */
-/* Drawer: the summoned Pokémon below the trainer portrait             */
+/* Drawer: the summoned Pokémon token below the trainer token          */
 /* ------------------------------------------------------------------ */
 
 .phc-drawer {
@@ -412,21 +305,18 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  gap: 5px;
+  justify-content: center;
   width: 100%;
-  min-height: 40px;
-  padding: 4px 5px;
-  border-radius: var(--phc-radius-sm);
-  border: 1px solid rgba(170, 148, 104, 0.2);
-  background: rgba(0, 0, 0, 0.42);
-  color: var(--phc-drawer-text);
+  min-height: 66px;
+  padding: 1px;
+  background: transparent;
+  border: none;
+  color: var(--phc-icon);
 }
 
-/* Empty drawer is darkened: no Pokémon summoned. */
+/* Empty slot: no fill, just a dashed outline. */
 .phc-drawer--empty {
-  background: rgba(0, 0, 0, 0.78);
-  border-style: dashed;
-  border-color: rgba(255, 255, 255, 0.14);
+  border: 1px dashed var(--phc-slot);
 }
 
 .phc-drawer--defeated {
@@ -434,140 +324,34 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
   filter: grayscale(0.7);
 }
 
-.phc-drawer__avatar {
-  position: relative;
-  display: block;
-  flex: 0 0 auto;
-}
-
-.phc-drawer__img {
-  box-sizing: border-box;
-  display: block;
-  width: 24px;
-  aspect-ratio: 3 / 4;
-  object-fit: cover;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 4px;
-  background: rgba(0, 0, 0, 0.5);
-}
-
-.phc-drawer__meta {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
-.phc-drawer__name {
-  font-size: 9.5px;
-  font-weight: 600;
-  line-height: 1.1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--phc-drawer-text);
-}
-
-.phc-drawer__hp {
-  font-size: 8.5px;
-  color: #b9ab92;
-  font-variant-numeric: tabular-nums;
-}
-
-.phc-drawer__init {
-  position: absolute;
-  top: -3px;
-  right: -3px;
-  display: grid;
-  place-items: center;
-  min-width: 13px;
-  height: 12px;
-  padding: 0 2px;
-  border-radius: 3px;
-  border: 1px solid rgba(230, 200, 120, 0.5);
-  background: rgba(10, 9, 7, 0.92);
-  color: var(--phc-gold);
-  font-size: 8px;
-  font-weight: 700;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  pointer-events: none;
-}
-
-.phc-drawer__none {
-  flex: 1 1 auto;
-  text-align: center;
-  font-size: 8.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #9a917f;
-}
-
-.phc-hp {
-  position: relative;
-  width: 100%;
-  height: 4px;
-  border-radius: var(--phc-radius-pill);
-  background: rgba(0, 0, 0, 0.55);
-  overflow: hidden;
-}
-
-.phc-hp__fill {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--phc-hp-high);
-  transition: width var(--phc-transition);
-}
-
-.phc-hp.hp-mid .phc-hp__fill {
-  background: var(--phc-hp-mid);
-}
-
-.phc-hp.hp-low .phc-hp__fill {
-  background: var(--phc-hp-low);
+.phc-token--mini {
+  width: 48px;
 }
 
 /* ------------------------------------------------------------------ */
-/* Empty state                                                         */
-/* ------------------------------------------------------------------ */
-
-.phc-empty {
-  display: grid;
-  place-items: center;
-  min-width: 260px;
-  min-height: 46px;
-  padding: 8px 14px;
-  border: 1px dashed var(--phc-border);
-  border-radius: var(--phc-radius-sm);
-  color: var(--phc-text-muted);
-  font-size: 12px;
-  letter-spacing: 0.02em;
-}
-
-/* ------------------------------------------------------------------ */
-/* Light theme                                                         */
+/* Light theme — still flat, only the token fill flips for legibility  */
 /* ------------------------------------------------------------------ */
 
 .phc-bar.theme-light {
-  --phc-text: #2a241b;
-  --phc-text-dim: #5a4f3f;
-  --phc-text-muted: #8a7d68;
-  --phc-bg: rgba(247, 242, 231, 0.97);
-  --phc-bg-deep: rgba(240, 234, 221, 0.98);
-  --phc-card: rgba(255, 253, 247, 0.96);
-  --phc-card-alt: rgba(245, 239, 227, 0.96);
-  --phc-border: rgba(120, 100, 64, 0.28);
-  --phc-accent-soft: rgba(238, 21, 21, 0.1);
-
-  background: linear-gradient(180deg, #fffdf7 0%, var(--phc-bg) 60%, var(--phc-bg-deep) 100%);
-  box-shadow:
-    0 10px 22px rgba(90, 70, 40, 0.18),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.04);
+  --phc-token-bg: rgba(255, 255, 255, 0.74);
+  --phc-enemy: #4a4a4a;
+  --phc-btn-border: rgba(0, 0, 0, 0.5);
+  --phc-icon: #1c1c1c;
+  --phc-icon-dim: #5a5a5a;
+  color: var(--phc-icon);
 }
 
-/* The drawer keeps its dark fill in both themes (darkened empty state). */
 .phc-bar.theme-light .phc-init {
-  background: rgba(10, 9, 7, 0.86);
+  background: rgba(0, 0, 0, 0.78);
+  color: var(--phc-gold);
+}
+
+.phc-bar.theme-light .phc-token__hint {
+  background: rgba(0, 0, 0, 0.8);
+  color: #ffffff;
+}
+
+.phc-bar.theme-light .phc-token__lock {
+  background: rgba(0, 0, 0, 0.8);
+  color: #b9b9b9;
 }

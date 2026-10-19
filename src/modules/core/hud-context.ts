@@ -83,6 +83,7 @@ function sceneTokens(): SceneToken[] {
           id?: string;
           actorId?: string;
           name?: string;
+          texture?: { src?: string };
           flags?: Record<string, Record<string, unknown> | undefined>;
         };
         actor?: Actor | null;
@@ -93,7 +94,7 @@ function sceneTokens(): SceneToken[] {
         tokenId: doc.id,
         actorId: doc.actorId ?? tk.actor?.id ?? "",
         name: tk.actor?.name ?? doc.name ?? "",
-        img: tk.actor?.img ?? "icons/svg/mystery-man.svg",
+        img: doc.texture?.src ?? tk.actor?.img ?? "icons/svg/mystery-man.svg",
         actor: tk.actor ?? null,
         flags: doc.flags ?? {}
       });
@@ -217,12 +218,26 @@ function activePokemonInfo(
   return {
     actorId,
     name: pokemonActor?.name ?? token.name,
-    img: pokemonActor?.img ?? token.img,
+    img: token.img || pokemonActor?.img || "icons/svg/mystery-man.svg",
     hp: snapshotHp(pokemonActor),
     combatantId: inCombat?.id ?? null,
     initiative: typeof inCombat?.initiative === "number" ? inCombat.initiative : null,
     defeated: inCombat ? combatantDefeated(inCombat) : false
   };
+}
+
+function combatantImg(combatant: Combatant, actor: Actor | null): string {
+  const raw = combatant as unknown as {
+    img?: unknown;
+    token?: { texture?: { src?: unknown } } | null;
+  };
+  const tokenSrc = raw.token?.texture?.src;
+  if (typeof tokenSrc === "string" && tokenSrc) return tokenSrc;
+  const own = typeof raw.img === "string" ? raw.img : "";
+  if (own) return own;
+  const actorImg = actor?.img;
+  if (typeof actorImg === "string" && actorImg) return actorImg;
+  return "icons/svg/mystery-man.svg";
 }
 
 function emptyView(): CombatView {
@@ -255,7 +270,7 @@ export function buildCombatView(): CombatView {
         id: combatant.id ?? "",
         actorId,
         name: actor?.name ?? combatant.name ?? "",
-        img: actor?.img ?? combatant.img ?? "icons/svg/mystery-man.svg",
+        img: combatantImg(combatant, actor),
         initiative: typeof combatant.initiative === "number" ? combatant.initiative : null,
         defeated: combatantDefeated(combatant),
         isTrainer: isTrainerActor(actor),

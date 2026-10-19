@@ -12,9 +12,8 @@ import {
 import { buildCombatView } from "../core/hud-context";
 import type { InitiativeRollMode } from "../core/initiative-mode";
 import { logger } from "../core/logger";
-import { isNativeTrackerHidden, toggleNativeTracker } from "../core/native-tracker";
+import { toggleNativeTracker } from "../core/native-tracker";
 import { getSettings } from "../core/settings";
-import { clampedPct, hpColor } from "../core/stats";
 import type { CombatView, PokemonRow } from "../types/index";
 
 const MODULE_ID = "pokemon-hud-combat";
@@ -39,13 +38,8 @@ export interface TemplatePokemon {
   combatantId: string | null;
   name: string;
   img: string;
-  hasHp: boolean;
-  hpCurrent: number;
-  hpMax: number;
-  hpPct: number;
-  hpClass: string;
   initiativeText: string;
-  active: boolean;
+  hasInitiative: boolean;
   defeated: boolean;
 }
 
@@ -74,13 +68,8 @@ interface CombatHudContext
   extends
     foundry.applications.api.HandlebarsApplicationMixin.RenderContext,
     foundry.applications.api.ApplicationV2.RenderContext {
-  present: boolean;
   started: boolean;
-  round: number;
-  turn: number;
-  statusLabel: string;
   isGM: boolean;
-  nativeHidden: boolean;
   groups: TemplateGroup[];
   hasGroups: boolean;
 }
@@ -100,19 +89,12 @@ function initiativeText(initiative: number | null): string {
 }
 
 function pokemonRow(pokemon: PokemonRow): TemplatePokemon {
-  const hasHp = pokemon.hp !== null && pokemon.hp.max > 0;
-  const pct = hasHp ? clampedPct(pokemon.hp?.current ?? 0, pokemon.hp?.max ?? 0) : 0;
   return {
     combatantId: pokemon.combatantId,
     name: pokemon.name,
     img: pokemon.img,
-    hasHp,
-    hpCurrent: pokemon.hp?.current ?? 0,
-    hpMax: pokemon.hp?.max ?? 0,
-    hpPct: Math.round(pct * 100),
-    hpClass: hpColor(pct),
     initiativeText: initiativeText(pokemon.initiative),
-    active: pokemon.active,
+    hasInitiative: typeof pokemon.initiative === "number",
     defeated: pokemon.defeated
   };
 }
@@ -158,12 +140,6 @@ function canUserRoll(combatantId: string): boolean {
   }
 }
 
-function statusLabel(view: CombatView): string {
-  if (!view.present) return game.i18n.localize(`${ROW_KEYS}.noCombat`);
-  if (!view.started) return game.i18n.localize(`${ROW_KEYS}.notStarted`);
-  return game.i18n.format(`${ROW_KEYS}.status`, { round: view.round, turn: view.turn });
-}
-
 export class CombatHudApp extends foundry.applications.api.HandlebarsApplicationMixin(
   foundry.applications.api.ApplicationV2
 )<CombatHudContext, CombatHudConfiguration, CombatHudRenderOptions> {
@@ -187,7 +163,7 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
     foundry.applications.api.HandlebarsApplicationMixin.HandlebarsTemplatePart
   > = {
     bar: {
-      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.2.1.hbs`,
+      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.2.2.hbs`,
       id: `${MODULE_ID}-bar`,
       root: true
     }
@@ -202,13 +178,8 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
     const view = buildCombatView();
     const groups = toTemplateGroups(view);
     return {
-      present: view.present,
       started: view.started,
-      round: view.round,
-      turn: view.turn,
-      statusLabel: statusLabel(view),
       isGM: game.user?.isGM === true,
-      nativeHidden: isNativeTrackerHidden(),
       groups,
       hasGroups: groups.length > 0
     };

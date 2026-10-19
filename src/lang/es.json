@@ -2,11 +2,6 @@
   "pokemon-hud-combat": {
     "hud": {
       "title": "Rastreador de combate",
-      "status": "Ronda {round} · Turno {turn}",
-      "notStarted": "Combate sin iniciar",
-      "noCombat": "No hay ningún combate activo",
-      "rollInitiative": "Tirar iniciativa",
-      "rolled": "Iniciativa {initiative}",
       "rollAll": "Tirar iniciativa para todos",
       "startCombat": "Iniciar combate",
       "nextTurn": "Siguiente turno",
@@ -14,13 +9,6 @@
       "endCombat": "Terminar combate",
       "endCombatConfirm": "¿Terminar el combate actual?",
       "toggleNative": "Mostrar/ocultar el rastreador de Foundry",
-      "focus": "Centrar en el token",
-      "trainer": "Entrenador",
-      "wild": "Pokémon salvaje",
-      "blocked": "Este entrenador necesita un Pokémon activo",
-      "emptyCombat": "Añade combatientes al combate para verlos aquí",
-      "activePokemon": "Pokémon activo",
-      "emptyDrawer": "Sin Pokémon activo",
       "rollHint": "Clic: tirar iniciativa · Alt: ventaja · Ctrl: desventaja"
     },
     "error": {
