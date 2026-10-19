@@ -15,6 +15,7 @@ export interface SettingsHooks {
   onEnabledChange?: (enabled: boolean) => void;
   onAutoShowChange?: (autoShow: boolean) => void;
   onTokenSizeChange?: () => void;
+  onImageSourceChange?: () => void;
 }
 
 export function registerSettings(hooks?: SettingsHooks): void {
@@ -76,7 +77,8 @@ export function registerSettings(hooks?: SettingsHooks): void {
       token: "pokemon-hud-combat.settings.imageSource.choices.token",
       actor: "pokemon-hud-combat.settings.imageSource.choices.actor"
     },
-    default: "token"
+    default: "token",
+    onChange: () => hooks?.onImageSourceChange?.()
   });
 
   game.settings.register(SCOPE, SETTINGS.tokenSize, {

@@ -18,7 +18,9 @@ Hooks.once("init", () => {
       if (enabled) syncCombatHud();
       else hideCombatHud();
     },
-    onAutoShowChange: () => syncCombatHud()
+    onAutoShowChange: () => syncCombatHud(),
+    onTokenSizeChange: () => refreshCombatHud(),
+    onImageSourceChange: () => refreshCombatHud()
   });
   registerKeybindings();
   registerHandlebarsHelpers();

@@ -164,7 +164,7 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
     foundry.applications.api.HandlebarsApplicationMixin.HandlebarsTemplatePart
   > = {
     bar: {
-      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.2.2.hbs`,
+      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.2.3.hbs`,
       id: `${MODULE_ID}-bar`,
       root: true
     }
@@ -409,7 +409,7 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
 
   #applySize(): void {
     const w = tokenWidthCss();
-    (this.element as HTMLElement).style.setProperty('--phc-portrait-w', w, 'important');
+    (this.element as HTMLElement).style.setProperty("--phc-portrait-w", w, "important");
   }
 
   #handleError(where: string, err: unknown): void {
