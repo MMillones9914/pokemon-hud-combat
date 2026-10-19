@@ -19,7 +19,9 @@
       "wild": "Wild Pokémon",
       "blocked": "This trainer needs an active Pokémon",
       "emptyCombat": "Add combatants to the combat to see them here",
-      "activePokemon": "Active Pokémon"
+      "activePokemon": "Active Pokémon",
+      "emptyDrawer": "No active Pokémon",
+      "rollHint": "Click: roll initiative · Alt: advantage · Ctrl: disadvantage"
     },
     "error": {
       "noActivePokemon": "That trainer has no active Pokémon: summon one before rolling initiative."

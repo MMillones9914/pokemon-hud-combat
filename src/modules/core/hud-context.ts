@@ -1,6 +1,7 @@
 import type { ActivePokemonInfo, RawCombatant } from "./combat-order";
 import { buildCombatGroups, markActive } from "./combat-order";
 import { canRollInitiative } from "./initiative-gate";
+import { applyInitiativeMode, type InitiativeRollMode } from "./initiative-mode";
 import { getSettings } from "./settings";
 import { readCoreStats } from "./stats";
 import type { CombatView, HpSnapshot, InitiativeGateResult } from "../types/index";
@@ -156,6 +157,38 @@ function combatantDefeated(combatant: Combatant): boolean {
   return raw.isDefeated === true || raw.defeated === true;
 }
 
+/** Token disposition of a combatant (drives the ally/enemy border). */
+function combatantDisposition(combatant: Combatant): number | null {
+  try {
+    const raw = combatant as unknown as {
+      disposition?: unknown;
+      token?: { disposition?: unknown; document?: { disposition?: unknown } } | null;
+    };
+    const candidate =
+      raw.token?.document?.disposition ?? raw.token?.disposition ?? raw.disposition;
+    return typeof candidate === "number" && Number.isFinite(candidate) ? candidate : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The viewing player's own token disposition; null for the GM. */
+function userDisposition(): number | null {
+  try {
+    const controlled = (
+      canvas as
+        | { tokens?: { controlled?: Array<{ document?: { disposition?: unknown } }> } }
+        | undefined
+    )?.tokens?.controlled;
+    const mine = Array.isArray(controlled) && controlled.length
+      ? controlled[0].document?.disposition
+      : undefined;
+    return typeof mine === "number" && Number.isFinite(mine) ? mine : null;
+  } catch {
+    return null;
+  }
+}
+
 function activePokemonInfo(
   trainer: Actor | null,
   combatants: Combatant[]
@@ -218,7 +251,8 @@ export function buildCombatView(): CombatView {
         initiative: typeof combatant.initiative === "number" ? combatant.initiative : null,
         defeated: combatantDefeated(combatant),
         isTrainer: isTrainerActor(actor),
-        hp: snapshotHp(actor)
+        hp: snapshotHp(actor),
+        disposition: combatantDisposition(combatant)
       });
       if (isTrainerActor(actor) && actorId) {
         activeByTrainer[actorId] = activePokemonInfo(actor, combatants);
@@ -227,7 +261,7 @@ export function buildCombatView(): CombatView {
 
     const gmBypassActive = game.user?.isGM === true && getSettings().gmBypass;
     const groups = markActive(
-      buildCombatGroups(raws, activeByTrainer, { gmBypassActive }),
+      buildCombatGroups(raws, activeByTrainer, { gmBypassActive, userDisposition: userDisposition() }),
       activeCombatantId(combat)
     );
 
@@ -267,8 +301,35 @@ export function gateForCombatant(combatant: Combatant): InitiativeGateResult {
   });
 }
 
-/** Roll one combatant's initiative through the (guarded) Foundry API. */
-export async function rollCombatantInitiative(combatantId: string): Promise<void> {
+/**
+ * Effective initiative formula for a roll with advantage/disadvantage.
+ * Returns `undefined` when the modifier cannot change the formula (the default
+ * roll is used instead).
+ */
+function initiativeFormulaFor(combatant: Combatant, mode: InitiativeRollMode): string | undefined {
+  if (mode === "normal") return undefined;
+  let base = "";
+  try {
+    const getFormula = (combatant as unknown as { _getInitiativeFormula?: () => string })
+      ._getInitiativeFormula;
+    if (typeof getFormula === "function") base = getFormula.call(combatant) ?? "";
+  } catch {
+    base = "";
+  }
+  const fallback = "1d20";
+  const source = base.trim() || fallback;
+  const withMode = applyInitiativeMode(source, mode);
+  return withMode === source ? undefined : withMode;
+}
+
+/**
+ * Roll one combatant's initiative through the (guarded) Foundry API.
+ * `mode` applies advantage (Alt) / disadvantage (Ctrl) via the dice formula.
+ */
+export async function rollCombatantInitiative(
+  combatantId: string,
+  mode: InitiativeRollMode = "normal"
+): Promise<void> {
   const combat = game.combat;
   if (!combat) return;
   const combatant = Array.from(combat.combatants).find((c) => c.id === combatantId);
@@ -279,7 +340,9 @@ export async function rollCombatantInitiative(combatantId: string): Promise<void
     logger.warn("Combatant#rollInitiative unavailable");
     return;
   }
-  await roll.call(combatant);
+  const formula = initiativeFormulaFor(combatant, mode);
+  if (formula) await roll.call(combatant, formula);
+  else await roll.call(combatant);
 }
 
 /** Roll initiative for every combatant that has not rolled yet. */

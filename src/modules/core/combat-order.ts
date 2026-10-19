@@ -1,4 +1,5 @@
 import type { CombatGroup, HpSnapshot, PokemonRow } from "../types/index";
+import { classifyFaction } from "./faction";
 
 /** A Combatant flattened to plain data (pure input). */
 export interface RawCombatant {
@@ -13,6 +14,8 @@ export interface RawCombatant {
   /** Actor follows trainer rules (vs. wild Pokémon). */
   isTrainer: boolean;
   hp: HpSnapshot | null;
+  /** Token disposition used to derive the ally/enemy card border. */
+  disposition: number | null;
 }
 
 /** The trainer's active Pokémon resolved from flags/tokens (may lack a Combatant). */
@@ -30,6 +33,8 @@ export interface ActivePokemonInfo {
 export interface BuildGroupsOptions {
   /** `isGM && gmBypass` — when true every entry is rollable. */
   gmBypassActive?: boolean;
+  /** Disposition of the viewing player's own token (null for the GM). */
+  userDisposition?: number | null;
 }
 
 /**
@@ -51,6 +56,7 @@ export function buildCombatGroups(
   options: BuildGroupsOptions = {}
 ): CombatGroup[] {
   const gmBypassActive = options.gmBypassActive ?? false;
+  const userDisposition = options.userDisposition ?? null;
 
   // Which combatants are someone's active Pokémon → nested, never top-level.
   const nestedCombatantIds = new Set<string>();
@@ -91,6 +97,7 @@ export function buildCombatGroups(
       initiative: raw.initiative,
       defeated: raw.defeated,
       active: false,
+      faction: classifyFaction(raw.disposition, userDisposition),
       rollable,
       blockedKey: rollable ? null : "pokemon-hud-combat.error.noActivePokemon",
       pokemon

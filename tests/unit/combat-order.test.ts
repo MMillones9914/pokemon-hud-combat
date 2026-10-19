@@ -11,7 +11,8 @@ function raw(partial: Partial<RawCombatant> & { id: string }): RawCombatant {
     initiative: partial.initiative ?? null,
     defeated: partial.defeated ?? false,
     isTrainer: partial.isTrainer ?? false,
-    hp: partial.hp ?? null
+    hp: partial.hp ?? null,
+    disposition: partial.disposition ?? null
   };
 }
 
@@ -134,6 +135,37 @@ describe("buildCombatGroups", () => {
   it("keeps defeated combatants in the list so they can be dimmed", () => {
     const groups = buildCombatGroups([raw({ id: "a", initiative: 4, defeated: true })], {});
     expect(groups[0].defeated).toBe(true);
+  });
+
+  it("colors allies celeste and enemies red by token disposition", () => {
+    const groups = buildCombatGroups(
+      [
+        raw({ id: "ally", initiative: 5, disposition: 1 }),
+        raw({ id: "enemy", initiative: 5, disposition: -1 }),
+        raw({ id: "neutral", initiative: 5, disposition: 0 }),
+        raw({ id: "missing", initiative: 5, disposition: null })
+      ],
+      {}
+    );
+    expect(groups.map((g) => [g.combatantId, g.faction])).toEqual([
+      ["ally", "ally"],
+      ["enemy", "enemy"],
+      ["neutral", "neutral"],
+      ["missing", "neutral"]
+    ]);
+  });
+
+  it("compares dispositions against the viewing player's own token", () => {
+    const groups = buildCombatGroups(
+      [
+        raw({ id: "same", initiative: 5, disposition: -1 }),
+        raw({ id: "other", initiative: 5, disposition: 1 })
+      ],
+      {},
+      { userDisposition: -1 }
+    );
+    expect(groups.find((g) => g.combatantId === "same")?.faction).toBe("ally");
+    expect(groups.find((g) => g.combatantId === "other")?.faction).toBe("enemy");
   });
 });
 

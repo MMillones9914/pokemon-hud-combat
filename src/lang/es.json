@@ -19,7 +19,9 @@
       "wild": "Pokémon salvaje",
       "blocked": "Este entrenador necesita un Pokémon activo",
       "emptyCombat": "Añade combatientes al combate para verlos aquí",
-      "activePokemon": "Pokémon activo"
+      "activePokemon": "Pokémon activo",
+      "emptyDrawer": "Sin Pokémon activo",
+      "rollHint": "Clic: tirar iniciativa · Alt: ventaja · Ctrl: desventaja"
     },
     "error": {
       "noActivePokemon": "Ese entrenador no tiene un Pokémon activo: invoca uno antes de tirar iniciativa."

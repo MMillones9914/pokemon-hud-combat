@@ -21,9 +21,19 @@
   --phc-accent-soft: rgba(238, 21, 21, 0.18);
   --phc-gold: #e8c76a;
 
+  /* Faction borders: ally = celeste, enemy = red. */
+  --phc-ally: #63c7f5;
+  --phc-ally-soft: rgba(99, 199, 245, 0.32);
+  --phc-enemy: #e04848;
+  --phc-enemy-soft: rgba(224, 72, 72, 0.4);
+
   --phc-hp-high: #6abb4a;
   --phc-hp-mid: #e6c233;
   --phc-hp-low: #e04848;
+
+  /* Portrait is 3:4 (portrait orientation), width drives the card size. */
+  --phc-portrait-w: 84px;
+  --phc-drawer-text: #f4ecdd;
 
   --phc-transition: 0.16s ease;
 }
@@ -102,6 +112,67 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
 }
 
 /* ------------------------------------------------------------------ */
+/* Body: GM controls at the far left, then status + combatant cards    */
+/* ------------------------------------------------------------------ */
+
+.phc-bar__body {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  min-width: 0;
+}
+
+.phc-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+/* GM-only tracker options, leftmost of the whole combat. */
+.phc-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  padding-right: 8px;
+  border-right: 1px solid var(--phc-border);
+}
+
+.phc-btn {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--phc-border);
+  border-radius: var(--phc-radius-sm);
+  background: var(--phc-card-alt);
+  color: var(--phc-text-dim);
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    background var(--phc-transition),
+    color var(--phc-transition),
+    border-color var(--phc-transition);
+}
+
+.phc-btn:hover {
+  background: var(--phc-hover);
+  color: var(--phc-text);
+  border-color: var(--phc-border-strong);
+}
+
+.phc-btn--danger:hover {
+  color: #fff;
+  background: rgba(224, 72, 72, 0.35);
+  border-color: rgba(224, 72, 72, 0.6);
+}
+
+/* ------------------------------------------------------------------ */
 /* Header                                                              */
 /* ------------------------------------------------------------------ */
 
@@ -148,50 +219,13 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
   white-space: nowrap;
 }
 
-.phc-controls {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.phc-btn {
-  display: grid;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  border: 1px solid var(--phc-border);
-  border-radius: var(--phc-radius-sm);
-  background: var(--phc-card-alt);
-  color: var(--phc-text-dim);
-  font-size: 12px;
-  cursor: pointer;
-  transition:
-    background var(--phc-transition),
-    color var(--phc-transition),
-    border-color var(--phc-transition);
-}
-
-.phc-btn:hover {
-  background: var(--phc-hover);
-  color: var(--phc-text);
-  border-color: var(--phc-border-strong);
-}
-
-.phc-btn--danger:hover {
-  color: #fff;
-  background: rgba(224, 72, 72, 0.35);
-  border-color: rgba(224, 72, 72, 0.6);
-}
-
 /* ------------------------------------------------------------------ */
 /* Rows of cards (horizontal scroll when combat is crowded)            */
 /* ------------------------------------------------------------------ */
 
 .phc-rows {
   display: flex;
-  align-items: stretch;
+  align-items: flex-start;
   gap: 8px;
   overflow-x: auto;
   overflow-y: hidden;
@@ -209,12 +243,18 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
   border-radius: var(--phc-radius-pill);
 }
 
+/* ------------------------------------------------------------------ */
+/* Combatant card: portrait (3:4) + summoned Pokémon drawer below      */
+/* ------------------------------------------------------------------ */
+
 .phc-card {
   position: relative;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   flex: 0 0 auto;
-  width: 168px;
+  width: calc(var(--phc-portrait-w) + 14px);
   padding: 6px;
   gap: 5px;
   background: var(--phc-card);
@@ -222,25 +262,37 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
   border-radius: var(--phc-radius-sm);
   cursor: pointer;
   transition:
-    border-color var(--phc-transition),
+    transform var(--phc-transition),
     box-shadow var(--phc-transition),
-    transform var(--phc-transition);
+    border-color var(--phc-transition);
 }
 
 .phc-card:hover {
-  border-color: var(--phc-border-strong);
+  transform: translateY(-2px);
 }
 
 .phc-card--wild {
   background: linear-gradient(180deg, rgba(44, 36, 24, 0.95), var(--phc-card-alt));
 }
 
+/* Ally / enemy borders */
+.phc-card--ally {
+  border-color: var(--phc-ally);
+  box-shadow: 0 0 0 1px var(--phc-ally-soft);
+}
+
+.phc-card--enemy {
+  border-color: var(--phc-enemy);
+  box-shadow: 0 0 0 1px var(--phc-enemy-soft);
+}
+
+/* Turn marker: outline (not border) so the faction color stays visible. */
 .phc-card--active {
-  border-color: var(--phc-gold);
+  outline: 2px solid var(--phc-gold);
+  outline-offset: 1px;
   box-shadow:
     0 0 0 1px var(--phc-gold),
-    0 0 14px rgba(232, 199, 106, 0.28);
-  transform: translateY(1px);
+    0 0 14px rgba(232, 199, 106, 0.3);
 }
 
 .phc-card--defeated {
@@ -248,146 +300,153 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
   filter: grayscale(0.6);
 }
 
-.phc-card__line {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.phc-card__portrait {
-  width: 34px;
-  height: 34px;
-  flex: 0 0 auto;
-  border-radius: var(--phc-radius-sm);
+/* Portrait button — the roll/initiative control */
+.phc-portrait {
+  position: relative;
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  padding: 0;
+  margin: 0;
   overflow: hidden;
   border: 1px solid var(--phc-border);
+  border-radius: var(--phc-radius-sm);
   background: var(--phc-bg-deep);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color var(--phc-transition);
 }
 
-.phc-card__portrait img,
-.phc-poke__img {
+.phc-portrait:hover {
+  border-color: var(--phc-border-strong);
+}
+
+.phc-portrait__img {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
   border: none;
 }
 
-.phc-card__meta {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
-.phc-card__name {
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.15;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.phc-card__role {
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--phc-text-muted);
-}
-
+/* Initiative badge over the portrait */
 .phc-init {
+  position: absolute;
+  top: 3px;
+  right: 3px;
   display: grid;
   place-items: center;
-  min-width: 26px;
-  height: 26px;
-  padding: 0 5px;
-  border-radius: var(--phc-radius-sm);
+  min-width: 20px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 4px;
   border: 1px solid var(--phc-border-strong);
-  background: rgba(232, 199, 106, 0.1);
+  background: rgba(10, 9, 7, 0.82);
   color: var(--phc-gold);
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
-  flex: 0 0 auto;
+  pointer-events: none;
 }
 
 .phc-init--pending {
   color: var(--phc-text-muted);
-  border-color: var(--phc-border);
-  background: transparent;
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(10, 9, 7, 0.7);
 }
 
-.phc-roll {
+/* Dice hint shown on hover while initiative is pending */
+.phc-portrait__hint {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
-  padding: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
   border: 1px solid var(--phc-accent);
-  border-radius: var(--phc-radius-sm);
-  background: var(--phc-accent-soft);
+  background: rgba(10, 9, 7, 0.85);
   color: #ff8f8f;
-  font-size: 12px;
-  cursor: pointer;
-  flex: 0 0 auto;
+  font-size: 11px;
+  transform: translateX(-50%) translateY(4px);
+  opacity: 0;
+  pointer-events: none;
   transition:
-    background var(--phc-transition),
-    color var(--phc-transition),
+    opacity var(--phc-transition),
     transform var(--phc-transition);
 }
 
-.phc-roll:hover {
-  background: var(--phc-accent);
-  color: #fff;
-  transform: rotate(-12deg);
+.phc-portrait:hover .phc-portrait__hint {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
-.phc-blocked {
+/* Locked trainer (no active Pokémon) */
+.phc-portrait__lock {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
-  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px dashed rgba(170, 148, 104, 0.55);
+  background: rgba(10, 9, 7, 0.8);
   color: var(--phc-text-muted);
-  font-size: 11px;
-  border-radius: var(--phc-radius-sm);
-  border: 1px dashed var(--phc-border);
+  font-size: 10px;
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 
 /* ------------------------------------------------------------------ */
-/* Nested active Pokémon (always directly below its trainer)           */
+/* Drawer: the summoned Pokémon below the trainer portrait             */
 /* ------------------------------------------------------------------ */
 
-.phc-poke {
+.phc-drawer {
+  position: relative;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
+  width: 100%;
+  min-height: 40px;
   padding: 4px 5px;
   border-radius: var(--phc-radius-sm);
-  border: 1px solid rgba(170, 148, 104, 0.16);
-  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(170, 148, 104, 0.2);
+  background: rgba(0, 0, 0, 0.42);
+  color: var(--phc-drawer-text);
 }
 
-.phc-poke--active {
-  border-color: var(--phc-accent);
-  background: var(--phc-accent-soft);
+/* Empty drawer is darkened: no Pokémon summoned. */
+.phc-drawer--empty {
+  background: rgba(0, 0, 0, 0.78);
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.14);
 }
 
-.phc-poke--defeated {
-  opacity: 0.5;
-  filter: grayscale(0.7);
-}
-
-.phc-poke__img {
-  width: 26px;
-  height: 26px;
+.phc-drawer__avatar {
+  position: relative;
+  display: block;
   flex: 0 0 auto;
-  border-radius: 5px;
-  border: 1px solid var(--phc-border);
-  background: var(--phc-bg-deep);
 }
 
-.phc-poke__meta {
+.phc-drawer__img {
+  box-sizing: border-box;
+  display: block;
+  width: 24px;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.phc-drawer__meta {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -395,31 +454,55 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
   flex: 1 1 auto;
 }
 
-.phc-poke__name {
-  font-size: 10.5px;
+.phc-drawer__name {
+  font-size: 9.5px;
   font-weight: 600;
+  line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--phc-drawer-text);
 }
 
-.phc-poke__hp {
-  font-size: 9px;
-  color: var(--phc-text-muted);
+.phc-drawer__hp {
+  font-size: 8.5px;
+  color: #b9ab92;
   font-variant-numeric: tabular-nums;
 }
 
-.phc-poke__init {
-  font-size: 10px;
+.phc-drawer__init {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  display: grid;
+  place-items: center;
+  min-width: 13px;
+  height: 12px;
+  padding: 0 2px;
+  border-radius: 3px;
+  border: 1px solid rgba(230, 200, 120, 0.5);
+  background: rgba(10, 9, 7, 0.92);
+  color: var(--phc-gold);
+  font-size: 8px;
   font-weight: 700;
-  color: var(--phc-text-dim);
+  line-height: 1;
   font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.phc-drawer__none {
+  flex: 1 1 auto;
+  text-align: center;
+  font-size: 8.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9a917f;
 }
 
 .phc-hp {
   position: relative;
   width: 100%;
-  height: 5px;
+  height: 4px;
   border-radius: var(--phc-radius-pill);
   background: rgba(0, 0, 0, 0.55);
   overflow: hidden;
@@ -479,6 +562,7 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
     inset 0 -1px 0 rgba(0, 0, 0, 0.04);
 }
 
-.phc-bar.theme-light .phc-poke {
-  background: rgba(120, 100, 64, 0.08);
+/* The drawer keeps its dark fill in both themes (darkened empty state). */
+.phc-bar.theme-light .phc-init {
+  background: rgba(10, 9, 7, 0.86);
 }

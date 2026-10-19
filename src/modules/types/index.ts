@@ -1,3 +1,5 @@
+import type { Faction } from "../core/faction";
+
 /** Snapshot of an actor's HP used for the nested Pokémon row. */
 export interface HpSnapshot {
   current: number;
@@ -28,6 +30,8 @@ export interface CombatGroup {
   initiative: number | null;
   defeated: boolean;
   active: boolean;
+  /** Ally (light-blue border) vs. enemy (red border) for the viewing user. */
+  faction: Faction;
   /** Whether the HUD may offer an initiative roll button for this entry. */
   rollable: boolean;
   /** Localization key explaining why rolling is blocked (when `rollable` is false). */

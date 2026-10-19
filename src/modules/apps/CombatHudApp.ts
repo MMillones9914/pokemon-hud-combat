@@ -1,5 +1,6 @@
 import type { DeepPartial } from "fvtt-types/utils";
 import { patchChildren } from "../core/dom-patch";
+import type { Faction } from "../core/faction";
 import {
   endCombat,
   nextTurn,
@@ -9,6 +10,7 @@ import {
   startCombat
 } from "../core/hud-context";
 import { buildCombatView } from "../core/hud-context";
+import type { InitiativeRollMode } from "../core/initiative-mode";
 import { logger } from "../core/logger";
 import { isNativeTrackerHidden, toggleNativeTracker } from "../core/native-tracker";
 import { getSettings } from "../core/settings";
@@ -56,10 +58,14 @@ export interface TemplateGroup {
   initiative: number | null;
   initiativeText: string;
   hasInitiative: boolean;
+  pending: boolean;
   defeated: boolean;
   active: boolean;
+  faction: Faction;
   rollable: boolean;
   canRoll: boolean;
+  /** Clicking the portrait rolls initiative (pending + allowed for this user). */
+  canPortraitRoll: boolean;
   blockedKey: string | null;
   pokemon: TemplatePokemon | null;
 }
@@ -112,22 +118,30 @@ function pokemonRow(pokemon: PokemonRow): TemplatePokemon {
 }
 
 function toTemplateGroups(view: CombatView): TemplateGroup[] {
-  return view.groups.map((group) => ({
-    combatantId: group.combatantId,
-    kind: group.kind,
-    isTrainer: group.kind === "trainer",
-    name: group.name,
-    img: group.img,
-    initiative: group.initiative,
-    initiativeText: initiativeText(group.initiative),
-    hasInitiative: typeof group.initiative === "number",
-    defeated: group.defeated,
-    active: group.active || group.pokemon?.active === true,
-    rollable: group.rollable,
-    canRoll: canUserRoll(group.combatantId),
-    blockedKey: group.blockedKey,
-    pokemon: group.pokemon ? pokemonRow(group.pokemon) : null
-  }));
+  return view.groups.map((group) => {
+    const hasInitiative = typeof group.initiative === "number";
+    const canRoll = canUserRoll(group.combatantId);
+    const rollable = group.rollable;
+    return {
+      combatantId: group.combatantId,
+      kind: group.kind,
+      isTrainer: group.kind === "trainer",
+      name: group.name,
+      img: group.img,
+      initiative: group.initiative,
+      initiativeText: initiativeText(group.initiative),
+      hasInitiative,
+      pending: !hasInitiative,
+      defeated: group.defeated,
+      active: group.active || group.pokemon?.active === true,
+      faction: group.faction,
+      rollable,
+      canRoll,
+      canPortraitRoll: !hasInitiative && rollable && canRoll,
+      blockedKey: group.blockedKey,
+      pokemon: group.pokemon ? pokemonRow(group.pokemon) : null
+    };
+  });
 }
 
 /** Players only see the dice button on combatants they are allowed to update. */
@@ -173,7 +187,7 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
     foundry.applications.api.HandlebarsApplicationMixin.HandlebarsTemplatePart
   > = {
     bar: {
-      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.1.0.hbs`,
+      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.2.0.hbs`,
       id: `${MODULE_ID}-bar`,
       root: true
     }
@@ -241,7 +255,7 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
     if (!button) return;
     const action = button.dataset.action;
     if (!action) return;
-    if (action === "roll-initiative") void this.#onRollInitiative(button);
+    if (action === "roll-initiative") void this.#onRollInitiative(button, event);
     else if (action === "roll-all") void this.#onRollAll();
     else if (action === "focus-combatant") this.#onFocusCombatant(button);
     else if (action === "start-combat") void this.#onStartCombat();
@@ -251,11 +265,19 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
     else if (action === "toggle-native") void this.#onToggleNative();
   };
 
-  async #onRollInitiative(element: HTMLElement): Promise<void> {
+  /** Alt = advantage, Ctrl/Cmd = disadvantage, plain click = normal roll. */
+  #rollModeFromEvent(event: Event): InitiativeRollMode {
+    const mouse = event as MouseEvent;
+    if (mouse.altKey) return "advantage";
+    if (mouse.ctrlKey || mouse.metaKey) return "disadvantage";
+    return "normal";
+  }
+
+  async #onRollInitiative(element: HTMLElement, event: Event): Promise<void> {
     const combatantId = element.dataset.combatantId;
     if (!combatantId) return;
     try {
-      await rollCombatantInitiative(combatantId);
+      await rollCombatantInitiative(combatantId, this.#rollModeFromEvent(event));
     } catch (err) {
       this.#handleError("roll-initiative", err);
     }
