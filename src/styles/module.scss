@@ -429,6 +429,11 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
   border-color: rgba(255, 255, 255, 0.14);
 }
 
+.phc-drawer--defeated {
+  opacity: 0.5;
+  filter: grayscale(0.7);
+}
+
 .phc-drawer__avatar {
   position: relative;
   display: block;

@@ -175,15 +175,23 @@ function combatantDisposition(combatant: Combatant): number | null {
 /** The viewing player's own token disposition; null for the GM. */
 function userDisposition(): number | null {
   try {
-    const controlled = (
-      canvas as
-        | { tokens?: { controlled?: Array<{ document?: { disposition?: unknown } }> } }
-        | undefined
-    )?.tokens?.controlled;
-    const mine = Array.isArray(controlled) && controlled.length
-      ? controlled[0].document?.disposition
-      : undefined;
-    return typeof mine === "number" && Number.isFinite(mine) ? mine : null;
+    const tokens = canvas as
+      | {
+          scene?: { tokens?: { contents?: Array<{ actorId?: string; disposition?: unknown }> } };
+          tokens?: { controlled?: Array<{ document?: { disposition?: unknown } }> };
+        }
+      | undefined;
+    const controlled = tokens?.tokens?.controlled;
+    const controlledDisp =
+      Array.isArray(controlled) && controlled.length ? controlled[0].document?.disposition : undefined;
+    if (typeof controlledDisp === "number" && Number.isFinite(controlledDisp)) return controlledDisp;
+
+    const characterId = game.user?.character?.id;
+    if (!characterId) return null;
+    const own = tokens?.scene?.tokens?.contents?.find((token) => token.actorId === characterId);
+    return typeof own?.disposition === "number" && Number.isFinite(own.disposition)
+      ? own.disposition
+      : null;
   } catch {
     return null;
   }

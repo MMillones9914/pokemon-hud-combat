@@ -73,7 +73,7 @@
             </button>
 
             {{#if isTrainer}}
-            <div class="phc-drawer{{#unless pokemon}} phc-drawer--empty{{/unless}}">
+            <div class="phc-drawer{{#unless pokemon}} phc-drawer--empty{{/unless}}{{#if pokemon.defeated}} phc-drawer--defeated{{/if}}">
               {{#if pokemon}}
               <span class="phc-drawer__avatar">
                 <img class="phc-drawer__img" src="{{pokemon.img}}" alt="{{pokemon.name}}" />
