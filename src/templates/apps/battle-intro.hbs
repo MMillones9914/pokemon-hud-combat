@@ -1,0 +1,64 @@
+{{!--
+  Battle intro (VS) screen. Shown once when a combat is created.
+  Left = player trainers, right = rival trainers, a "VS" bar across the middle.
+  GM-only controls (encounter type + rival team) sit above the bar.
+--}}
+<section class="phc-vs" data-duration="{{durationMs}}">
+  {{#if showPicker}}
+  <div class="phc-vs__picker" data-action="noop">
+    <label class="phc-vs__field">
+      <span class="phc-vs__field-label">{{localize "pokemon-hud-combat.battleIntro.encounterKind"}}</span>
+      <select class="phc-vs__select" data-action="pick-kind">
+        {{#each kinds}}
+        <option value="{{value}}" {{#if selected}}selected{{/if}} {{#unless implemented}}disabled{{/unless}}>{{label}}</option>
+        {{/each}}
+      </select>
+    </label>
+    {{#if rivalTeams.length}}
+    <label class="phc-vs__field">
+      <span class="phc-vs__field-label">{{localize "pokemon-hud-combat.battleIntro.rivalTeam"}}</span>
+      <select class="phc-vs__select" data-action="pick-team">
+        {{#each rivalTeams}}
+        <option value="{{this}}" {{#if selected}}selected{{/if}}>{{this}}</option>
+        {{/each}}
+      </select>
+    </label>
+    {{/if}}
+  </div>
+  {{/if}}
+
+  <div class="phc-vs__stage">
+    <div class="phc-vs__side phc-vs__side--players">
+      <ul class="phc-vs__list">
+        {{#each players}}
+        <li class="phc-vs__actor" data-tooltip="{{name}}">
+          <img class="phc-vs__img" src="{{img}}" alt="" />
+        </li>
+        {{/each}}
+      </ul>
+      {{#if playerTeam}}
+      <div class="phc-vs__team">{{playerTeam}}</div>
+      {{/if}}
+    </div>
+
+    <div class="phc-vs__middle">
+      <span class="phc-vs__bar"></span>
+      <span class="phc-vs__vs">VS</span>
+    </div>
+
+    <div class="phc-vs__side phc-vs__side--rivals">
+      <ul class="phc-vs__list">
+        {{#each rivals}}
+        <li class="phc-vs__actor" data-tooltip="{{name}}">
+          <img class="phc-vs__img" src="{{img}}" alt="" />
+        </li>
+        {{/each}}
+      </ul>
+      {{#if rivalTeam}}
+      <div class="phc-vs__team">{{rivalTeam}}</div>
+      {{/if}}
+    </div>
+  </div>
+
+  <div class="phc-vs__hint">{{localize "pokemon-hud-combat.battleIntro.skipHint"}}</div>
+</section>

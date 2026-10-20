@@ -53,7 +53,38 @@
           "medium": "Medium (125px tall)",
           "large": "Large (150px tall)"
         }
+      },
+      "battleIntro": {
+        "name": "Show the battle intro (VS screen)",
+        "hint": "When a combat is created, show a full-screen VS screen to everyone."
+      },
+      "battleIntroDuration": {
+        "name": "Battle intro duration (seconds)",
+        "hint": "How long the VS screen stays up before closing itself. It can always be skipped with a click or a key."
+      },
+      "playerTeamName": {
+        "name": "Player team name",
+        "hint": "Shown under the player portraits on the VS screen."
+      },
+      "rivalTeams": {
+        "name": "Rival team names",
+        "hint": "One rival team per line. The GM picks which one is shown when the VS screen appears."
       }
+    },
+    "encounter": {
+      "trainers": "Trainer encounter",
+      "casual": "Casual encounter",
+      "gym": "Gym encounter",
+      "leader": "Leader encounter",
+      "wild": "Wild Pokémon encounter",
+      "alpha": "Alpha Pokémon encounter"
+    },
+    "battleIntro": {
+      "title": "Battle",
+      "encounterKind": "Encounter type",
+      "rivalTeam": "Rival team",
+      "skipHint": "Click or press any key to skip",
+      "soon": "coming soon"
     },
     "keybindings": {
       "toggle": {

@@ -10,10 +10,9 @@
       "endCombatConfirm": "¿Terminar el combate actual?",
       "toggleNative": "Mostrar/ocultar el rastreador de Foundry",
       "rollHint": "Clic: tirar iniciativa · Alt: ventaja · Ctrl: desventaja",
-  "initiativeFlavor": "{name} tira iniciativa",
-  "roundCounter": "Ronda"
-    },
-    "error": {
+      "initiativeFlavor": "{name} tira iniciativa",
+      "roundCounter": "Ronda"
+    },    "error": {
       "noActivePokemon": "Ese entrenador no tiene un Pokémon activo: invoca uno antes de tirar iniciativa."
     },
     "settings": {
@@ -53,7 +52,38 @@
           "medium": "Mediano (125px de alto)",
           "large": "Grande (150px de alto)"
         }
+      },
+      "battleIntro": {
+        "name": "Mostrar la intro de combate (pantalla VS)",
+        "hint": "Al crear un combate, muestra una pantalla VS a todo el mundo."
+      },
+      "battleIntroDuration": {
+        "name": "Duración de la intro (segundos)",
+        "hint": "Cuánto tiempo permanece la pantalla VS antes de cerrarse sola. Siempre se puede saltar con un clic o una tecla."
+      },
+      "playerTeamName": {
+        "name": "Nombre del equipo de los jugadores",
+        "hint": "Se muestra bajo los retratos de los jugadores en la pantalla VS."
+      },
+      "rivalTeams": {
+        "name": "Nombres de equipos rivales",
+        "hint": "Un equipo rival por línea. El DJ elige cuál se muestra al aparecer la pantalla VS."
       }
+    },
+    "encounter": {
+      "trainers": "Encuentro contra entrenadores",
+      "casual": "Encuentro casual",
+      "gym": "Encuentro de gimnasio",
+      "leader": "Encuentro contra un líder",
+      "wild": "Encuentro contra Pokémon salvajes",
+      "alpha": "Encuentro contra Pokémon alfas"
+    },
+    "battleIntro": {
+      "title": "Combate",
+      "encounterKind": "Tipo de encuentro",
+      "rivalTeam": "Equipo rival",
+      "skipHint": "Haz clic o pulsa cualquier tecla para saltar",
+      "soon": "próximamente"
     },
     "keybindings": {
       "toggle": {

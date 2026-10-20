@@ -452,3 +452,228 @@ button.phc-token {
   background: rgba(0, 0, 0, 0.8);
   color: #b9b9b9;
 }
+
+/* ------------------------------------------------------------------ */
+/* Battle intro (VS screen) — full-screen overlay, shown on createCombat */
+/* ------------------------------------------------------------------ */
+
+/* ApplicationV2 shell: no frame, covers the viewport, above everything. */
+[id="pokemon-hud-combat.battle-intro"] {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  z-index: 100;
+  font-family: var(--phc-font, "Signika", "Alegreya SC", sans-serif);
+}
+
+[id="pokemon-hud-combat.battle-intro"] .window-content {
+  width: 100%;
+  height: 100%;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: hidden;
+}
+
+.phc-vs {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 22px;
+  box-sizing: border-box;
+  padding: 28px;
+  color: #ffffff;
+  background:
+    radial-gradient(circle at 22% 50%, rgba(74, 222, 128, 0.16), transparent 55%),
+    radial-gradient(circle at 78% 50%, rgba(248, 113, 113, 0.18), transparent 55%),
+    rgba(8, 8, 10, 0.94);
+  cursor: pointer;
+  animation: phc-vs-in 260ms ease-out both;
+}
+
+@keyframes phc-vs-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* GM picker: encounter kind + rival team, above the stage. */
+.phc-vs__picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex: 0 0 auto;
+  cursor: default;
+}
+
+.phc-vs__field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #e8e8e8;
+}
+
+.phc-vs__field-label {
+  opacity: 0.85;
+}
+
+.phc-vs__select {
+  box-sizing: border-box;
+  min-width: 180px;
+  height: 28px;
+  padding: 0 6px;
+  border: 1px solid #3a3a3a;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #ffffff;
+  font-size: 13px;
+}
+
+/* Stage: players | VS | rivals. */
+.phc-vs__stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.phc-vs__side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.phc-vs__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Portrait frames: the only fill on the screen, matching the HUD tokens. */
+.phc-vs__actor {
+  box-sizing: border-box;
+  width: 128px;
+  height: 171px;
+  padding: 3px;
+  overflow: hidden;
+  border: 2px solid #3a3a3a;
+  border-radius: 3px;
+  background-color: rgba(6, 6, 6, 0.72);
+}
+
+.phc-vs__side--players .phc-vs__actor {
+  box-shadow: 0 0 10px 1px rgba(74, 222, 128, 0.45);
+}
+
+.phc-vs__side--rivals .phc-vs__actor {
+  box-shadow: 0 0 10px 1px rgba(248, 113, 113, 0.5);
+}
+
+.phc-vs__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border: none;
+}
+
+.phc-vs__team {
+  max-width: 100%;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phc-vs__side--players .phc-vs__team {
+  color: #7ee7a2;
+}
+
+.phc-vs__side--rivals .phc-vs__team {
+  color: #ffa2a2;
+}
+
+/* Middle: a bar crossing the whole screen with the VS label. */
+.phc-vs__middle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: 34%;
+  min-width: 160px;
+}
+
+.phc-vs__bar {
+  display: block;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, rgba(74, 222, 128, 0.15), #e8c76a 50%, rgba(248, 113, 113, 0.15));
+  box-shadow: 0 0 12px 1px rgba(232, 199, 106, 0.4);
+}
+
+.phc-vs__vs {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 6px 18px;
+  border: 2px solid #e8c76a;
+  border-radius: 3px;
+  background: rgba(8, 8, 10, 0.95);
+  color: var(--phc-gold, #e8c76a);
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  text-shadow: 0 0 14px rgba(232, 199, 106, 0.6);
+}
+
+.phc-vs__hint {
+  flex: 0 0 auto;
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+@media (max-width: 900px) {
+  .phc-vs__actor {
+    width: 86px;
+    height: 115px;
+  }
+
+  .phc-vs__vs {
+    font-size: 24px;
+    padding: 4px 12px;
+  }
+}

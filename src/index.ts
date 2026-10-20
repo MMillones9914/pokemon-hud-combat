@@ -1,5 +1,9 @@
 import "./styles/module.scss";
 import { registerApi } from "./modules/api";
+import {
+  hideBattleIntro,
+  showBattleIntro
+} from "./modules/apps/BattleIntroApp";
 import { hideCombatHud, refreshCombatHud, syncCombatHud } from "./modules/apps/CombatHudApp";
 import { registerHandlebarsHelpers } from "./modules/core/handlebars";
 import { gateForCombatant } from "./modules/core/hud-context";
@@ -20,7 +24,10 @@ Hooks.once("init", () => {
     },
     onAutoShowChange: () => syncCombatHud(),
     onTokenSizeChange: () => refreshCombatHud(),
-    onImageSourceChange: () => refreshCombatHud()
+    onImageSourceChange: () => refreshCombatHud(),
+    onBattleIntroChange: () => {
+      if (!getSettings().battleIntro) hideBattleIntro();
+    }
   });
   registerKeybindings();
   registerHandlebarsHelpers();
@@ -35,7 +42,10 @@ Hooks.once("ready", () => {
   logger.info(`Pokémon HUD Combat Tracker v${version} ready`);
 });
 
-Hooks.on("createCombat", () => syncCombatHud());
+Hooks.on("createCombat", (combat: Combat) => {
+  syncCombatHud();
+  maybeShowBattleIntro(combat);
+});
 Hooks.on("deleteCombat", () => hideCombatHud());
 Hooks.on("updateCombat", () => refreshCombatHud());
 Hooks.on("createCombatant", () => refreshCombatHud());
@@ -52,6 +62,25 @@ Hooks.on("deleteToken", () => refreshCombatHud());
 interface RollablePrototype {
   rollInitiative?: (...args: unknown[]) => Promise<unknown>;
   __phcGated?: boolean;
+}
+
+/**
+ * Battle intro: shown once per combat, on every client, right when the Combat
+ * document is created. Finder-keyed guard so the same combat never reopens the
+ * screen (e.g. on a re-connect that replays the `createCombat` hook).
+ */
+let introShownForCombat: string | null = null;
+
+function maybeShowBattleIntro(combat: Combat): void {
+  try {
+    if (!getSettings().battleIntro) return;
+    const id = combat?.id ?? null;
+    if (!id || introShownForCombat === id) return;
+    introShownForCombat = id;
+    showBattleIntro();
+  } catch (err) {
+    logger.warn(`maybeShowBattleIntro: ${String(err)}`);
+  }
 }
 
 function warnBlocked(blockedKey: string | null): void {
