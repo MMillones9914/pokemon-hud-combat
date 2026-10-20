@@ -254,6 +254,9 @@ export function isBattleIntroVisible(): boolean {
 /** Show the VS screen (no-op when the feature is off). */
 export function showBattleIntro(): void {
   if (!getSettings().battleIntro) return;
+  // Suppress the bar immediately (synchronously) so the `createCombat` hook's
+  // `syncCombatHud()` right after this can never flash the tracker on screen.
+  setCombatHudSuppressed(true);
   if (!activeInstance) activeInstance = new BattleIntroApp();
   void activeInstance.render({ force: true });
 }
