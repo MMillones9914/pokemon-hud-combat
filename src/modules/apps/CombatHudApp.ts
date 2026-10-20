@@ -41,6 +41,7 @@ export interface TemplatePokemon {
   initiativeText: string;
   hasInitiative: boolean;
   defeated: boolean;
+  active: boolean;
 }
 
 export interface TemplateGroup {
@@ -96,7 +97,8 @@ function pokemonRow(pokemon: PokemonRow): TemplatePokemon {
     img: pokemon.img,
     initiativeText: initiativeText(pokemon.initiative),
     hasInitiative: typeof pokemon.initiative === "number",
-    defeated: pokemon.defeated
+    defeated: pokemon.defeated,
+    active: pokemon.active === true
   };
 }
 
@@ -164,7 +166,7 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
     foundry.applications.api.HandlebarsApplicationMixin.HandlebarsTemplatePart
   > = {
     bar: {
-      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.2.5.hbs`,
+      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.2.6.hbs`,
       id: `${MODULE_ID}-bar`,
       root: true
     }

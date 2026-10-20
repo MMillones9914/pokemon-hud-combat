@@ -9,22 +9,23 @@
 [id="pokemon-hud-combat.bar"],
 [class*="pokemon-hud-combat"][class*="phc-top-bar"] {
   --phc-font: "Signika", "Alegreya SC", sans-serif;
-  --phc-radius-sm: 6px;
+  /* Squarer corners: a small radius, not the old pill-ish 6px. */
+  --phc-radius-sm: 3px;
 
   /* Token frame: the only fill in the whole bar, painted over each token. */
   --phc-token-bg: rgba(6, 6, 6, 0.72);
 
-  /* Faction backgrounds: ally = white below the token, enemy = dark grey. */
-  --phc-ally-bg: #ffffff;
-  --phc-enemy-bg: #222222;
-  --phc-neutral-bg: #666666;
-  --phc-slot: #5f5f5f;
-  --phc-scroll: #7d7d7d;
+  /* Unified frame border: dark grey in dark mode (white in light mode). */
+  --phc-frame-border: #3a3a3a;
 
   --phc-gold: #e8c76a;
   --phc-icon: #ffffff;
   --phc-icon-dim: #b9b9b9;
   --phc-btn-border: rgba(255, 255, 255, 0.55);
+
+  /* Turn highlight: green on allies, red on enemies. */
+  --phc-turn-ally: #4ade80;
+  --phc-turn-enemy: #f87171;
 
   /* Token HEIGHT drives the card size (setting: small/medium/large →
      100/150/200px). Width follows the 3:4 portrait ratio. The Pokémon mini
@@ -139,7 +140,7 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
 }
 
 .phc-btn--danger:hover {
-  border-color: var(--phc-enemy-bg);
+  border-color: var(--phc-turn-enemy);
   color: #ff8f8f;
 }
 
@@ -155,7 +156,7 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
   overflow-y: hidden;
   padding-bottom: 2px;
   scrollbar-width: thin;
-  scrollbar-color: var(--phc-scroll) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
 }
 
 .phc-rows::-webkit-scrollbar {
@@ -163,7 +164,7 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
 }
 
 .phc-rows::-webkit-scrollbar-thumb {
-  background: var(--phc-scroll);
+  background: rgba(255, 255, 255, 0.28);
   border-radius: 999px;
 }
 
@@ -186,10 +187,16 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
   cursor: pointer;
 }
 
-/* Turn marker: an outline (not a background) so faction borders stay visible. */
-.phc-card--active {
-  outline: 2px solid var(--phc-gold);
-  outline-offset: 2px;
+/* Turn marker: brighten the frame itself (green ally / red enemy), so both
+   the actor card and the nested Pokémon glow with the same border colour. */
+.phc-token--turn-ally {
+  border-color: var(--phc-turn-ally) !important;
+  box-shadow: 0 0 0 2px var(--phc-turn-ally);
+}
+
+.phc-token--turn-enemy {
+  border-color: var(--phc-turn-enemy) !important;
+  box-shadow: 0 0 0 2px var(--phc-turn-enemy);
 }
 
 .phc-card--defeated {
@@ -211,36 +218,21 @@ button.phc-token {
   padding: 3px;
   margin: 0;
   overflow: hidden;
-  border: 2px solid var(--phc-neutral-bg);
+  border: 2px solid var(--phc-frame-border);
   border-radius: var(--phc-radius-sm);
-  background-color: var(--phc-neutral-bg);
+  background-color: var(--phc-token-bg);
   box-shadow: none;
   color: inherit;
   font: inherit;
   cursor: pointer;
-  transition: border-color var(--phc-transition);
+  transition:
+    border-color var(--phc-transition),
+    box-shadow var(--phc-transition);
 }
 
-/* Ally = white frame, enemy = dark grey, neutral = mid grey. */
-.phc-card--ally .phc-token,
-.phc-card--ally button.phc-token {
-  background-color: var(--phc-ally-bg);
-  border-color: var(--phc-ally-bg);
-}
+/* One border colour for every card (dark grey in dark mode, white in light). */
 
-.phc-card--enemy .phc-token,
-.phc-card--enemy button.phc-token {
-  background-color: var(--phc-enemy-bg);
-  border-color: var(--phc-enemy-bg);
-}
-
-.phc-card--neutral .phc-token,
-.phc-card--neutral button.phc-token {
-  background-color: var(--phc-neutral-bg);
-  border-color: var(--phc-neutral-bg);
-}
-
-/* Full token art — never cropped, transparent so the faction fill shows. */
+/* Full token art — never cropped, transparent so the frame fill shows. */
 .phc-token__img {
   display: block;
   width: 100%;
@@ -347,7 +339,7 @@ button.phc-token {
 
 /* Empty slot: no fill, just a dashed outline. */
 .phc-drawer--empty {
-  border: 1px dashed var(--phc-slot);
+  border: 1px dashed rgba(255, 255, 255, 0.28);
 }
 
 .phc-drawer--defeated {
@@ -370,14 +362,16 @@ button.phc-token {
 
 .phc-bar.theme-light {
   --phc-token-bg: rgba(255, 255, 255, 0.74);
-  --phc-ally-bg: #ffffff;
-  --phc-enemy-bg: #111111;
-  --phc-neutral-bg: #666666;
-  --phc-slot: #7a7a7a;
+  /* Light mode: the unified frame border flips to white. */
+  --phc-frame-border: #ffffff;
   --phc-btn-border: rgba(0, 0, 0, 0.5);
   --phc-icon: #1c1c1c;
   --phc-icon-dim: #5a5a5a;
   color: var(--phc-icon);
+}
+
+.phc-bar.theme-light .phc-drawer--empty {
+  border-color: rgba(0, 0, 0, 0.3);
 }
 
 .phc-bar.theme-light .phc-init {

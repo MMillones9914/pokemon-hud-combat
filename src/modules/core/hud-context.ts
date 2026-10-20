@@ -226,18 +226,29 @@ function activePokemonInfo(
   };
 }
 
+/**
+ * Image for a combatant card.
+ * - `token` mode: the token texture (falls back to the actor portrait).
+ * - `actor` mode: the actor portrait (falls back to the token texture).
+ *
+ * `combatant.img` is usually the token texture for token-based combatants, so
+ * the actor mode must consult `actor.img` *before* `combatant.img`.
+ */
 function combatantImg(combatant: Combatant, actor: Actor | null): string {
   const srcSetting = getSettings().imageSource;
   const raw = combatant as unknown as {
     img?: unknown;
     token?: { texture?: { src?: unknown } } | null;
   };
-  const tokenSrc = raw.token?.texture?.src;
-  if (typeof tokenSrc === "string" && tokenSrc && srcSetting === "token") return tokenSrc;
-  const own = typeof raw.img === "string" ? raw.img : "";
-  if (own && srcSetting === "actor") return own;
-  if (typeof tokenSrc === "string" && tokenSrc) return tokenSrc;
-  return own || (actor?.img ?? "icons/svg/mystery-man.svg");
+  const tokenSrc = typeof raw.token?.texture?.src === "string" ? raw.token.texture.src : "";
+  const combatantImg = typeof raw.img === "string" ? raw.img : "";
+  const actorImg = typeof actor?.img === "string" ? actor.img : "";
+  const fallback = "icons/svg/mystery-man.svg";
+
+  if (srcSetting === "actor") {
+    return actorImg || combatantImg || tokenSrc || fallback;
+  }
+  return tokenSrc || combatantImg || actorImg || fallback;
 }
 
 function emptyView(): CombatView {
@@ -325,28 +336,44 @@ export function gateForCombatant(combatant: Combatant): InitiativeGateResult {
 }
 
 /**
+ * Base initiative formula for a combatant (the system's own, when available).
+ * Used both for plain rolls and as the source for advantage/disadvantage.
+ */
+function baseInitiativeFormula(combatant: Combatant): string {
+  try {
+    const getFormula = (combatant as unknown as { _getInitiativeFormula?: () => string })
+      ._getInitiativeFormula;
+    if (typeof getFormula === "function") {
+      const formula = getFormula.call(combatant);
+      if (typeof formula === "string" && formula.trim()) return formula.trim();
+    }
+  } catch {
+    // fall through to the default below
+  }
+  return "1d20";
+}
+
+/**
  * Effective initiative formula for a roll with advantage/disadvantage.
  * Returns `undefined` when the modifier cannot change the formula (the default
  * roll is used instead).
  */
 function initiativeFormulaFor(combatant: Combatant, mode: InitiativeRollMode): string | undefined {
   if (mode === "normal") return undefined;
-  let base = "";
-  try {
-    const getFormula = (combatant as unknown as { _getInitiativeFormula?: () => string })
-      ._getInitiativeFormula;
-    if (typeof getFormula === "function") base = getFormula.call(combatant) ?? "";
-  } catch {
-    base = "";
-  }
-  const fallback = "1d20";
-  const source = base.trim() || fallback;
+  const source = baseInitiativeFormula(combatant);
   const withMode = applyInitiativeMode(source, mode);
   return withMode === source ? undefined : withMode;
 }
 
 /**
- * Roll one combatant's initiative through the (guarded) Foundry API.
+ * Roll one combatant's initiative.
+ *
+ * The roll is built and posted explicitly through `Roll#toMessage()` rather
+ * than letting `Combatant#rollInitiative` create it internally: that is the
+ * path Dice So Nice intercepts (`chatMessage.isRoll` + a `rolls` array), so the
+ * 3D animation plays. The resulting total is then written back onto the
+ * combatant so initiative order updates.
+ *
  * `mode` applies advantage (Alt) / disadvantage (Ctrl) via the dice formula.
  */
 export async function rollCombatantInitiative(
@@ -357,15 +384,77 @@ export async function rollCombatantInitiative(
   if (!combat) return;
   const combatant = Array.from(combat.combatants).find((c) => c.id === combatantId);
   if (!combatant) return;
-  const roll = (combatant as unknown as { rollInitiative?: (formula?: string) => Promise<unknown> })
-    .rollInitiative;
-  if (typeof roll !== "function") {
+
+  const modeFormula = initiativeFormulaFor(combatant, mode);
+  const formula = modeFormula ?? baseInitiativeFormula(combatant);
+
+  const RollClass = (
+    globalThis as {
+      Roll?: new (formula: string, data?: Record<string, unknown>) => {
+        evaluate: () => Promise<unknown>;
+        toMessage: (data?: Record<string, unknown>) => Promise<unknown>;
+        total?: number;
+      };
+    }
+  ).Roll;
+  const updateInitiative = (
+    combatant as unknown as {
+      update?: (data: { initiative: number | null }) => Promise<unknown>;
+    }
+  ).update;
+
+  // Preferred path: explicit Roll + toMessage → Dice So Nice animates it.
+  if (typeof RollClass === "function" && typeof updateInitiative === "function") {
+    try {
+      const roll = new RollClass(formula, {});
+      await roll.evaluate();
+      const total = typeof roll.total === "number" ? roll.total : 0;
+
+      let speaker: unknown;
+      let whisper: unknown;
+      try {
+        const getSpeaker = (
+          globalThis as {
+            ChatMessage?: { getSpeaker?: (opts?: Record<string, unknown>) => unknown };
+          }
+        ).ChatMessage?.getSpeaker;
+        const actor = combatantActor(combatant);
+        if (typeof getSpeaker === "function") {
+          speaker = getSpeaker({ actor: actor ?? undefined, token: combatant.token ?? undefined });
+        }
+        // V14 setting: `core.rollMode` ("public" | "gm" | "blind" | "self").
+        const messageMode = game.settings?.get("core", "rollMode");
+        // Whisper the initiative message to the GM for non-public modes.
+        if (messageMode && messageMode !== "public") {
+          whisper = Array.from(game.users ?? []).filter((u) => u.isGM).map((u) => u.id);
+        }
+      } catch {
+        speaker = undefined;
+      }
+
+      await roll.toMessage({
+        speaker,
+        whisper,
+        flavor: game.i18n?.localize("pokemon-hud-combat.hud.initiativeFlavor") ?? "Initiative",
+        flags: { "pokemon-hud-combat": { initiative: true } }
+      });
+      await updateInitiative.call(combatant, { initiative: total });
+      return;
+    } catch (err) {
+      logger.warn(`rollCombatantInitiative (explicit roll): ${String(err)}`);
+    }
+  }
+
+  // Fallback: let Foundry build and post the initiative roll itself.
+  const nativeRoll = (
+    combatant as unknown as { rollInitiative?: (formula?: string) => Promise<unknown> }
+  ).rollInitiative;
+  if (typeof nativeRoll !== "function") {
     logger.warn("Combatant#rollInitiative unavailable");
     return;
   }
-  const formula = initiativeFormulaFor(combatant, mode);
-  if (formula) await roll.call(combatant, formula);
-  else await roll.call(combatant);
+  if (formula) await nativeRoll.call(combatant, formula);
+  else await nativeRoll.call(combatant);
 }
 
 /** Roll initiative for every combatant that has not rolled yet. */
