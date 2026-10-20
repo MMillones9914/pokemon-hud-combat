@@ -335,9 +335,26 @@ export function gateForCombatant(combatant: Combatant): InitiativeGateResult {
   });
 }
 
+/** Minimal surface of a Foundry `Roll` we depend on. */
+interface InitiativeRollLike {
+  evaluate: () => Promise<unknown>;
+  toMessage: (data?: Record<string, unknown>) => Promise<unknown>;
+  total?: number;
+  options?: Record<string, unknown>;
+  data?: Record<string, unknown>;
+  clone?: () => InitiativeRollLike;
+}
+
+type RollConstructor = new (
+  formula: string,
+  data?: Record<string, unknown>,
+  options?: Record<string, unknown>
+) => InitiativeRollLike;
+
 /**
  * Base initiative formula for a combatant (the system's own, when available).
- * Used both for plain rolls and as the source for advantage/disadvantage.
+ * Used as the fallback when the combatant cannot build its own roll (e.g. a
+ * combatant with no actor, or a system that does not override `getInitiativeRoll`).
  */
 function baseInitiativeFormula(combatant: Combatant): string {
   try {
@@ -354,28 +371,105 @@ function baseInitiativeFormula(combatant: Combatant): string {
 }
 
 /**
- * Effective initiative formula for a roll with advantage/disadvantage.
- * Returns `undefined` when the modifier cannot change the formula (the default
- * roll is used instead).
+ * Build the initiative roll for a combatant using the **system's own** roll
+ * machinery. This matters for Dice So Nice: dnd5e builds initiative as a
+ * `CONFIG.Dice.D20Roll` (not a plain `Roll`), and only that class is registered
+ * with the dice animation pipeline.
+ *
+ * Order of preference:
+ * 1. `combatant.getInitiativeRoll()` — dnd5e overrides this to return a
+ *    `D20Roll` carrying the actor's roll data + modifiers.
+ * 2. A fresh `CONFIG.Dice.D20Roll` (dnd5e / other d20 systems).
+ * 3. Plain `globalThis.Roll` with the combatant's formula.
+ *
+ * Advantage/disadvantage is applied through the roll's `advantageMode` when the
+ * class supports it (dnd5e's `D20Roll.ADV_MODE`), otherwise by rewriting the
+ * formula (`1d20` → `2d20kh1`/`2d20kl1`).
  */
-function initiativeFormulaFor(combatant: Combatant, mode: InitiativeRollMode): string | undefined {
-  if (mode === "normal") return undefined;
+function buildInitiativeRoll(
+  combatant: Combatant,
+  mode: InitiativeRollMode,
+  actor: Actor | null
+): InitiativeRollLike | null {
+  const advMode = advantageModeValue(mode);
+
+  // 1. The combatant's own roll machinery (dnd5e → D20Roll with actor data).
+  try {
+    const own = (
+      combatant as unknown as { getInitiativeRoll?: (formula?: string) => InitiativeRollLike | null }
+    ).getInitiativeRoll;
+    if (typeof own === "function") {
+      const roll = own.call(combatant);
+      if (roll && typeof roll.evaluate === "function") {
+        if (advMode !== undefined && roll.options) roll.options.advantageMode = advMode;
+        return roll;
+      }
+    }
+  } catch (err) {
+    logger.warn(`buildInitiativeRoll (own): ${String(err)}`);
+  }
+
+  // 2/3. Construct the roll ourselves.
+  const config = (
+    globalThis as {
+      CONFIG?: {
+        Dice?: {
+          D20Roll?: RollConstructor;
+          rolls?: RollConstructor[];
+        };
+      };
+      Roll?: RollConstructor;
+    }
+  ).CONFIG?.Dice;
   const source = baseInitiativeFormula(combatant);
-  const withMode = applyInitiativeMode(source, mode);
-  return withMode === source ? undefined : withMode;
+  const formula = applyInitiativeMode(source, mode).trim() || "1d20";
+  const data = (actor as unknown as { getRollData?: () => Record<string, unknown> })
+    ?.getRollData?.() ?? {};
+  const options: Record<string, unknown> = {};
+  if (advMode !== undefined) options.advantageMode = advMode;
+
+  const candidates: Array<RollConstructor | undefined> = [
+    config?.D20Roll,
+    ...(config?.rolls ?? []),
+    (globalThis as { Roll?: RollConstructor }).Roll
+  ];
+  for (const ctor of candidates) {
+    if (typeof ctor !== "function") continue;
+    try {
+      const roll = new ctor(formula, data, options);
+      if (roll && typeof roll.evaluate === "function") return roll;
+    } catch {
+      // try the next candidate
+    }
+  }
+  return null;
+}
+
+/** dnd5e's `D20Roll.ADV_MODE` value for a roll mode, when the system exposes it. */
+function advantageModeValue(mode: InitiativeRollMode): number | undefined {
+  if (mode === "normal") return undefined;
+  const advMode = (
+    globalThis as {
+      CONFIG?: { Dice?: { D20Roll?: { ADV_MODE?: Record<string, number> } } };
+    }
+  ).CONFIG?.Dice?.D20Roll?.ADV_MODE;
+  if (!advMode) return undefined;
+  if (mode === "advantage") return advMode.ADVANTAGE;
+  return advMode.DISADVANTAGE;
 }
 
 /**
  * Roll one combatant's initiative.
  *
- * The roll is built and posted explicitly through `Roll#toMessage()` rather
- * than letting `Combatant#rollInitiative` create it internally: that is the
- * path Dice So Nice intercepts (`chatMessage.isRoll` + a `rolls` array), so the
- * 3D animation plays. `game.dice3d.showForRoll` is also called explicitly as a
- * belt-and-braces fallback for DSN configurations that miss the message.
+ * The roll is produced by the **game system** (dnd5e → `CONFIG.Dice.D20Roll`)
+ * and posted through `Roll#toMessage()`. That is the exact path Dice So Nice
+ * documents and intercepts (`chatMessage.isRoll` + a `rolls` array), so the 3D
+ * animation plays. We deliberately do NOT call `game.dice3d.showForRoll`
+ * manually: per the DSN author that only shows the dice to the local user and
+ * double-fires against the message animation.
  *
  * The total is written back onto the combatant so initiative order updates.
- * `mode` applies advantage (Alt) / disadvantage (Ctrl) via the dice formula.
+ * `mode` applies advantage (Alt) / disadvantage (Ctrl).
  */
 export async function rollCombatantInitiative(
   combatantId: string,
@@ -389,44 +483,17 @@ export async function rollCombatantInitiative(
   // Rule 1: never roll for a trainer with no active Pokémon (unless GM bypass).
   const verdict = gateForCombatant(combatant);
   if (!verdict.allowed) {
-    ui.notifications?.warn(game.i18n.localize(verdict.blockedKey ?? "pokemon-hud-combat.error.noActivePokemon"));
+    ui.notifications?.warn(
+      game.i18n.localize(verdict.blockedKey ?? "pokemon-hud-combat.error.noActivePokemon")
+    );
     return;
   }
 
   const actor = combatantActor(combatant);
-  const modeFormula = initiativeFormulaFor(combatant, mode);
-  const formula = modeFormula ?? baseInitiativeFormula(combatant);
+  const roll = buildInitiativeRoll(combatant, mode, actor);
 
-  const RollClass = (
-    globalThis as {
-      Roll?: new (
-        formula: string,
-        data?: Record<string, unknown>
-      ) => {
-        evaluate: () => Promise<unknown>;
-        toMessage: (data?: Record<string, unknown>) => Promise<unknown>;
-        total?: number;
-        data?: Record<string, unknown>;
-      };
-    }
-  ).Roll;
-  const updateInitiative = (
-    combatant as unknown as {
-      update?: (data: { initiative: number | null }) => Promise<unknown>;
-    }
-  ).update;
-
-  // Preferred path: explicit Roll + toMessage → Dice So Nice animates it.
-  if (typeof RollClass === "function" && typeof updateInitiative === "function") {
+  if (roll) {
     try {
-      // Roll against the actor's data so `@` references resolve, and stamp the
-      // actor id so DSN picks the owner's dice appearance.
-      const rollData = (actor as unknown as { getRollData?: () => Record<string, unknown> })
-        ?.getRollData?.();
-      const roll = new RollClass(formula, {
-        ...(rollData ?? {}),
-        ...(actor?.id ? { actorId: actor.id } : {})
-      });
       await roll.evaluate();
       const total = typeof roll.total === "number" ? roll.total : 0;
 
@@ -449,7 +516,7 @@ export async function rollCombatantInitiative(
             .map((u) => u.id);
           if (gms.length) whisper = gms;
         } else if (messageMode === "self") {
-          whisper = [game.user?.id ?? ""].filter(Boolean);
+          whisper = [game.user?.id ?? ""].filter(Boolean) as string[];
         }
       } catch {
         speaker = undefined;
@@ -466,28 +533,17 @@ export async function rollCombatantInitiative(
         flags: { "pokemon-hud-combat": { initiative: true } }
       });
 
-      // Belt-and-braces: ask Dice So Nice directly (no-op when it is absent).
-      try {
-        (
-          game as unknown as {
-            dice3d?: {
-              showForRoll?: (
-                roll: unknown,
-                user?: unknown,
-                synchronize?: boolean,
-                whisper?: unknown
-              ) => Promise<unknown>;
-            };
-          }
-        ).dice3d?.showForRoll?.(roll, game.user, true, whisper);
-      } catch {
-        // DSN not installed / older API — the message path already covers it.
+      const updateInitiative = (
+        combatant as unknown as {
+          update?: (data: { initiative: number | null }) => Promise<unknown>;
+        }
+      ).update;
+      if (typeof updateInitiative === "function") {
+        await updateInitiative.call(combatant, { initiative: total });
       }
-
-      await updateInitiative.call(combatant, { initiative: total });
       return;
     } catch (err) {
-      logger.warn(`rollCombatantInitiative (explicit roll): ${String(err)}`);
+      logger.warn(`rollCombatantInitiative (system roll): ${String(err)}`);
     }
   }
 
@@ -499,8 +555,7 @@ export async function rollCombatantInitiative(
     logger.warn("Combatant#rollInitiative unavailable");
     return;
   }
-  if (formula) await nativeRoll.call(combatant, formula);
-  else await nativeRoll.call(combatant);
+  await nativeRoll.call(combatant);
 }
 
 /** Roll initiative for every combatant that has not rolled yet. */

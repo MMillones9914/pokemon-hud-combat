@@ -144,6 +144,41 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
 }
 
 /* ------------------------------------------------------------------ */
+/* Round counter — icon + digit, visible to everyone while started     */
+/* ------------------------------------------------------------------ */
+
+.phc-round {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  flex: 0 0 auto;
+  min-width: 34px;
+  padding: 4px 6px;
+  border: 1px solid var(--phc-frame-border);
+  border-radius: var(--phc-radius-sm);
+  background: transparent;
+  color: var(--phc-gold);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.phc-round > i {
+  font-size: 10px;
+  opacity: 0.85;
+}
+
+.phc-round__value {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.phc-bar.theme-light .phc-round {
+  color: #8a6d1f;
+}
+
+/* ------------------------------------------------------------------ */
 /* Rows of cards (horizontal scroll when combat is crowded)            */
 /* ------------------------------------------------------------------ */
 
@@ -153,7 +188,9 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
   gap: 8px;
   overflow-x: auto;
   overflow-y: hidden;
-  padding-bottom: 2px;
+  /* Vertical padding leaves room for the turn glow (clipped by the scroll
+     container) and horizontal padding for the same reason at the edges. */
+  padding: 7px 7px 4px;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
 }
@@ -186,20 +223,46 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
   cursor: pointer;
 }
 
-/* Turn marker: a soft, diffused glow around the frame (green ally / red
-   enemy), so both the actor card and the nested Pokémon light up. */
-.phc-token--turn-ally {
-  border-color: var(--phc-turn-ally) !important;
-  box-shadow:
-    0 0 10px 2px color-mix(in srgb, var(--phc-turn-ally) 75%, transparent),
-    0 0 3px 1px var(--phc-turn-ally);
+/* ------------------------------------------------------------------ */
+/* Card — transparent: only the token frames below carry a border      */
+/* ------------------------------------------------------------------ */
+
+.phc-card {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  flex: 0 0 auto;
+  width: calc(var(--phc-portrait-w) + 2px);
+  padding: 0;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
 }
 
-.phc-token--turn-enemy {
-  border-color: var(--phc-turn-enemy) !important;
-  box-shadow:
-    0 0 10px 2px color-mix(in srgb, var(--phc-turn-enemy) 75%, transparent),
-    0 0 3px 1px var(--phc-turn-enemy);
+/* Turn marker: a soft, diffused glow around the whole card (trainer +
+   nested Pokémon), green on allies and red on enemies. The glow lives on
+   the CARD, not the token, because the token clips its overflow for the art
+   and would swallow the shadow. */
+.phc-card--active {
+  overflow: visible;
+  filter: drop-shadow(0 0 4px var(--phc-turn-color)) drop-shadow(0 0 9px var(--phc-turn-color));
+}
+
+.phc-card--turn-ally {
+  --phc-turn-color: var(--phc-turn-ally);
+}
+
+.phc-card--turn-enemy {
+  --phc-turn-color: var(--phc-turn-enemy);
+}
+
+/* The frame itself also takes the turn colour, so the glow reads as coming
+   from the border. Declared after `.phc-token` to win the cascade. */
+.phc-card--active .phc-token {
+  border-color: var(--phc-turn-color) !important;
 }
 
 .phc-card--defeated {
@@ -228,9 +291,7 @@ button.phc-token {
   color: inherit;
   font: inherit;
   cursor: pointer;
-  transition:
-    border-color var(--phc-transition),
-    box-shadow var(--phc-transition);
+  transition: border-color var(--phc-transition);
 }
 
 /* One border colour for every card (dark grey in dark mode, white in light). */

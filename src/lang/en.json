@@ -10,7 +10,8 @@
       "endCombatConfirm": "End the current combat?",
       "toggleNative": "Show/hide Foundry's combat tracker",
       "rollHint": "Click: roll initiative · Alt: advantage · Ctrl: disadvantage",
-      "initiativeFlavor": "{name} rolls initiative"
+      "initiativeFlavor": "{name} rolls initiative",
+      "roundCounter": "Round"
     },
     "error": {
       "noActivePokemon": "That trainer has no active Pokémon: summon one before rolling initiative."

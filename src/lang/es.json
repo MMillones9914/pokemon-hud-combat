@@ -10,7 +10,8 @@
       "endCombatConfirm": "¿Terminar el combate actual?",
       "toggleNative": "Mostrar/ocultar el rastreador de Foundry",
       "rollHint": "Clic: tirar iniciativa · Alt: ventaja · Ctrl: desventaja",
-  "initiativeFlavor": "{name} tira iniciativa"
+  "initiativeFlavor": "{name} tira iniciativa",
+  "roundCounter": "Ronda"
     },
     "error": {
       "noActivePokemon": "Ese entrenador no tiene un Pokémon activo: invoca uno antes de tirar iniciativa."

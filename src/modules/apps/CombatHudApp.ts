@@ -70,6 +70,10 @@ interface CombatHudContext
     foundry.applications.api.HandlebarsApplicationMixin.RenderContext,
     foundry.applications.api.ApplicationV2.RenderContext {
   started: boolean;
+  /** Current combat round (1-based once the combat has started). */
+  round: number;
+  /** Whether to paint the round counter (combat started and a round exists). */
+  showRound: boolean;
   isGM: boolean;
   tokenHeight: string;
   groups: TemplateGroup[];
@@ -166,7 +170,7 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
     foundry.applications.api.HandlebarsApplicationMixin.HandlebarsTemplatePart
   > = {
     bar: {
-      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.2.7.hbs`,
+      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.2.8.hbs`,
       id: `${MODULE_ID}-bar`,
       root: true
     }
@@ -182,6 +186,8 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
     const groups = toTemplateGroups(view);
     return {
       started: view.started,
+      round: view.round,
+      showRound: view.started && view.round > 0,
       isGM: game.user?.isGM === true,
       tokenHeight: tokenHeightCss(),
       groups,

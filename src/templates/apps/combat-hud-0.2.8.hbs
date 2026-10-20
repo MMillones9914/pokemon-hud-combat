@@ -33,12 +33,19 @@
     </div>
     {{/if}}
 
+    {{#if showRound}}
+    <div class="phc-round" data-tooltip="{{localize 'pokemon-hud-combat.hud.roundCounter'}}">
+      <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i>
+      <span class="phc-round__value">{{round}}</span>
+    </div>
+    {{/if}}
+
     <div class="phc-rows">
       {{#if hasGroups}}
         {{#each groups}}
-        <article class="phc-card phc-card--{{faction}}{{#if active}} phc-card--active{{/if}}{{#if defeated}} phc-card--defeated{{/if}}"
+        <article class="phc-card phc-card--{{faction}}{{#if active}} phc-card--active phc-card--turn-{{faction}}{{/if}}{{#if defeated}} phc-card--defeated{{/if}}"
                  data-action="focus-combatant" data-combatant-id="{{combatantId}}">
-          <button class="phc-token{{#if active}} phc-token--turn phc-token--turn-{{faction}}{{/if}}" type="button"
+          <button class="phc-token" type="button"
                   data-action="{{#if canPortraitRoll}}roll-initiative{{else}}focus-combatant{{/if}}"
                   data-combatant-id="{{combatantId}}"
                   data-tooltip="{{#if canPortraitRoll}}{{localize 'pokemon-hud-combat.hud.rollHint'}}{{else}}{{name}}{{/if}}">
@@ -64,7 +71,7 @@
           {{#if isTrainer}}
           <div class="phc-drawer{{#unless pokemon}} phc-drawer--empty{{/unless}}{{#if pokemon.defeated}} phc-drawer--defeated{{/if}}">
             {{#if pokemon}}
-            <span class="phc-token phc-token--mini{{#if pokemon.active}} phc-token--turn phc-token--turn-{{../faction}}{{/if}}" data-action="focus-combatant"
+            <span class="phc-token phc-token--mini" data-action="focus-combatant"
                   data-combatant-id="{{pokemon.combatantId}}" data-tooltip="{{pokemon.name}}">
               <img class="phc-token__img" src="{{pokemon.img}}" alt="" />
               <span class="phc-init phc-init--mini{{#unless pokemon.hasInitiative}} phc-init--pending{{/unless}}">
