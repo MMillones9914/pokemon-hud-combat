@@ -43,8 +43,8 @@ Hooks.once("ready", () => {
 });
 
 Hooks.on("createCombat", (combat: Combat) => {
-  syncCombatHud();
   maybeShowBattleIntro(combat);
+  syncCombatHud();
 });
 Hooks.on("deleteCombat", () => hideCombatHud());
 Hooks.on("updateCombat", () => refreshCombatHud());

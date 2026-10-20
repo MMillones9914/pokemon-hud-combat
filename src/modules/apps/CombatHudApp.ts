@@ -170,7 +170,7 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
     foundry.applications.api.HandlebarsApplicationMixin.HandlebarsTemplatePart
   > = {
     bar: {
-      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.3.0.hbs`,
+      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.3.1.hbs`,
       id: `${MODULE_ID}-bar`,
       root: true
     }
@@ -481,12 +481,31 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
 let activeInstance: CombatHudApp | null = null;
 let scheduledFlush: number | null = null;
 let pendingAction: "show" | "hide" | "refresh" | null = null;
+/** While a battle intro (VS screen) is up the bar stays out of the way. */
+let hudSuppressed = false;
+
+/**
+ * Hide the combat bar while the VS screen is on, and restore it afterwards.
+ * Suppression is also mirrored as a body class so the CSS keeps the bar hidden
+ * even during the frame before the intro paints its own overlay.
+ */
+export function setCombatHudSuppressed(suppressed: boolean): void {
+  hudSuppressed = suppressed;
+  try {
+    document.body?.classList.toggle("phc-intro-open", suppressed);
+  } catch {
+    /* no DOM yet (pre-ready) */
+  }
+  if (suppressed) hideCombatHud();
+  else syncCombatHud();
+}
 
 function flushSchedule(): void {
   scheduledFlush = null;
   const action = pendingAction;
   pendingAction = null;
   if (action === "show") {
+    if (hudSuppressed) return;
     if (!activeInstance) activeInstance = new CombatHudApp();
     if (activeInstance.rendered) void activeInstance.refreshInPlace();
     else void activeInstance.render({ force: true });
@@ -538,7 +557,7 @@ export function isCombatHudVisible(): boolean {
 
 /** Show the bar (coalesced into one patch per frame). */
 export function showCombatHud(): void {
-  if (!getSettings().enabled) return;
+  if (!getSettings().enabled || hudSuppressed) return;
   schedule("show");
 }
 
@@ -554,7 +573,7 @@ export function refreshCombatHud(): void {
 /** Auto behaviour: show while a Combat exists, hide when it is deleted. */
 export function syncCombatHud(): void {
   const settings = getSettings();
-  if (!settings.enabled) {
+  if (!settings.enabled || hudSuppressed) {
     hideCombatHud();
     return;
   }

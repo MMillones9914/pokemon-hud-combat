@@ -79,6 +79,11 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
   display: none !important;
 }
 
+/* While the battle intro (VS screen) is up, keep the combat bar out of sight. */
+body.phc-intro-open [id="pokemon-hud-combat.bar"] {
+  display: none !important;
+}
+
 /* ------------------------------------------------------------------ */
 /* Bar — flat: no background, no frame, no shadow                      */
 /* ------------------------------------------------------------------ */
@@ -485,16 +490,15 @@ button.phc-token {
   inset: 0;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
+  align-items: center;
   justify-content: center;
-  gap: 22px;
+  gap: 26px;
   box-sizing: border-box;
   padding: 28px;
   color: #ffffff;
-  background:
-    radial-gradient(circle at 22% 50%, rgba(74, 222, 128, 0.16), transparent 55%),
-    radial-gradient(circle at 78% 50%, rgba(248, 113, 113, 0.18), transparent 55%),
-    rgba(8, 8, 10, 0.94);
+  /* Darkened backdrop so the presentation stands out. */
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(2px) brightness(0.45);
   cursor: pointer;
   animation: phc-vs-in 260ms ease-out both;
 }
@@ -508,7 +512,8 @@ button.phc-token {
   }
 }
 
-/* GM picker: encounter kind + rival team, above the stage. */
+/* GM picker: encounter kind + rival team, above the stage. Centered with the
+   rest of the presentation so the whole screen reads as one block. */
 .phc-vs__picker {
   display: flex;
   flex-wrap: wrap;
@@ -538,18 +543,19 @@ button.phc-token {
   padding: 0 6px;
   border: 1px solid #3a3a3a;
   border-radius: 3px;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.72);
   color: #ffffff;
   font-size: 13px;
 }
 
-/* Stage: players | VS | rivals. */
+/* Stage: players | VS | rivals, in the middle of the screen. */
 .phc-vs__stage {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
+  width: 100%;
   min-height: 0;
 }
 
@@ -561,12 +567,14 @@ button.phc-token {
   gap: 14px;
   flex: 1 1 0;
   min-width: 0;
+  /* Team name sits centered under the whole row of portraits. */
+  text-align: center;
 }
 
 .phc-vs__list {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
   gap: 16px;
   margin: 0;
@@ -574,11 +582,12 @@ button.phc-token {
   list-style: none;
 }
 
-/* Portrait frames: the only fill on the screen, matching the HUD tokens. */
+/* Portrait frames: 150px wide × 400px tall. The art fills the frame and any
+   overflow is cropped horizontally (object-fit: cover), per the spec. */
 .phc-vs__actor {
   box-sizing: border-box;
-  width: 128px;
-  height: 171px;
+  width: 150px;
+  height: 400px;
   padding: 3px;
   overflow: hidden;
   border: 2px solid #3a3a3a;
@@ -587,26 +596,29 @@ button.phc-token {
 }
 
 .phc-vs__side--players .phc-vs__actor {
-  box-shadow: 0 0 10px 1px rgba(74, 222, 128, 0.45);
+  box-shadow: 0 0 14px 2px rgba(74, 222, 128, 0.5);
 }
 
 .phc-vs__side--rivals .phc-vs__actor {
-  box-shadow: 0 0 10px 1px rgba(248, 113, 113, 0.5);
+  box-shadow: 0 0 14px 2px rgba(248, 113, 113, 0.55);
 }
 
 .phc-vs__img {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
+  object-position: center;
   border: none;
 }
 
+/* Team name: centered under every portrait of its side. */
 .phc-vs__team {
+  align-self: center;
   max-width: 100%;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-align: center;
   text-transform: uppercase;
   overflow: hidden;
@@ -622,14 +634,15 @@ button.phc-token {
   color: #ffa2a2;
 }
 
-/* Middle: a bar crossing the whole screen with the VS label. */
+/* Middle: a bar crossing everything, with the VS label at its center. The bar
+   is vertically centered with the portraits, so it reads as a horizontal line
+   through the whole presentation. */
 .phc-vs__middle {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  align-self: stretch;
   width: 34%;
   min-width: 160px;
 }
@@ -647,12 +660,12 @@ button.phc-token {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  padding: 6px 18px;
+  padding: 8px 22px;
   border: 2px solid #e8c76a;
   border-radius: 3px;
   background: rgba(8, 8, 10, 0.95);
   color: var(--phc-gold, #e8c76a);
-  font-size: 34px;
+  font-size: 40px;
   font-weight: 800;
   letter-spacing: 0.12em;
   line-height: 1;
@@ -666,14 +679,22 @@ button.phc-token {
   color: rgba(255, 255, 255, 0.6);
 }
 
-@media (max-width: 900px) {
+/* Smaller viewports: shrink the portrait frames (keeping the 150:400 ratio). */
+@media (max-height: 760px) {
   .phc-vs__actor {
-    width: 86px;
-    height: 115px;
+    width: 105px;
+    height: 280px;
+  }
+}
+
+@media (max-height: 560px) {
+  .phc-vs__actor {
+    width: 82px;
+    height: 220px;
   }
 
   .phc-vs__vs {
-    font-size: 24px;
-    padding: 4px 12px;
+    font-size: 26px;
+    padding: 5px 14px;
   }
 }

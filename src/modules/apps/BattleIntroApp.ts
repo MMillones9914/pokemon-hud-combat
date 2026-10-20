@@ -9,6 +9,7 @@ import {
 } from "../core/encounters";
 import { logger } from "../core/logger";
 import { getSettings } from "../core/settings";
+import { setCombatHudSuppressed } from "./CombatHudApp";
 
 const MODULE_ID = "pokemon-hud-combat";
 const KEYS = "pokemon-hud-combat.battleIntro";
@@ -145,6 +146,8 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
       this.#onKeyBound = (event: KeyboardEvent) => this.#onKey(event);
       this.element.addEventListener("click", this.#onClickBound);
       window.addEventListener("keydown", this.#onKeyBound);
+      // Keep the combat bar out of sight while the VS screen is up.
+      setCombatHudSuppressed(true);
     } catch (err) {
       this.#handleError("bind events", err);
     }
@@ -171,6 +174,8 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
       /* element already detached */
     }
     if (activeInstance === this) activeInstance = null;
+    // Bring the combat bar back now that the presentation is over.
+    setCombatHudSuppressed(false);
     super._onClose(options);
   }
 
@@ -257,6 +262,9 @@ export function hideBattleIntro(): void {
   const app = activeInstance;
   activeInstance = null;
   if (app) void app.close();
+  // Safety net: `_onClose` restores this, but clear it even when there is no
+  // live instance (e.g. the setting was turned off mid-presentation).
+  else setCombatHudSuppressed(false);
 }
 
 export function toggleBattleIntro(): void {
