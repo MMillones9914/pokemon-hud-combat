@@ -164,7 +164,7 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
     foundry.applications.api.HandlebarsApplicationMixin.HandlebarsTemplatePart
   > = {
     bar: {
-      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.2.3.hbs`,
+      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.2.4.hbs`,
       id: `${MODULE_ID}-bar`,
       root: true
     }
@@ -408,8 +408,9 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
   }
 
   #applySize(): void {
-    const w = tokenWidthCss();
-    (this.element as HTMLElement).style.setProperty("--phc-portrait-w", w, "important");
+    const el = this.element as HTMLElement;
+    el.style.setProperty("--phc-portrait-w", tokenWidthCss(), "important");
+    el.style.setProperty("--phc-poke-w", POKEMON_TOKEN_W, "important");
   }
 
   #handleError(where: string, err: unknown): void {
@@ -500,12 +501,17 @@ function schedule(action: "show" | "hide" | "refresh"): void {
   scheduledFlush = requestAnimationFrame(flushSchedule);
 }
 
+/** Combatant token width from the `tokenSize` setting: small/medium/large. */
 function tokenWidthCss(): string {
   const size = getSettings().tokenSize;
-  if (size === 'small') return '100px';
-  if (size === 'large') return '250px';
-  return '150px';
+  if (size === "small") return "50px";
+  if (size === "large") return "150px";
+  return "100px";
 }
+
+/** The summoned Pokémon mini token is always a fixed 30px. */
+const POKEMON_TOKEN_W = "30px";
+
 export function isCombatHudVisible(): boolean {
   return activeInstance?.rendered === true;
 }

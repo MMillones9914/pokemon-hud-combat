@@ -1,40 +1,30 @@
-:root {
-  --phc-font: "Signika", "Alegreya SC", sans-serif;
-  --phc-radius-sm: 6px;
+/* ------------------------------------------------------------------ */
+/* Design tokens                                                       */
+/* ------------------------------------------------------------------ */
 
-  /* Token frame: the only fill in the whole bar, painted over each token. */
-  :root {
+.phc-bar {
   --phc-font: "Signika", "Alegreya SC", sans-serif;
   --phc-radius-sm: 6px;
 
   /* Token frame: the only fill in the whole bar, painted over each token. */
   --phc-token-bg: rgba(6, 6, 6, 0.72);
 
-  /* Faction backgrounds: ally = white below token, enemy = dark grey below token */
+  /* Faction backgrounds: ally = white below the token, enemy = dark grey. */
   --phc-ally-bg: #ffffff;
   --phc-enemy-bg: #222222;
   --phc-neutral-bg: #666666;
   --phc-slot: #5f5f5f;
+  --phc-scroll: #7d7d7d;
 
   --phc-gold: #e8c76a;
   --phc-icon: #ffffff;
   --phc-icon-dim: #b9b9b9;
   --phc-btn-border: rgba(255, 255, 255, 0.55);
 
-  /* Portrait is 3:4 (portrait orientation), width drives the card size. */
-  --phc-portrait-w: 150px;
-  --phc-poke-w: 48px;
-
-  --phc-transition: 0.16s ease;
-}
-
-  --phc-gold: #e8c76a;
-  --phc-icon: #ffffff;
-  --phc-icon-dim: #b9b9b9;
-  --phc-btn-border: rgba(255, 255, 255, 0.55);
-
-  /* Portrait is 3:4 (portrait orientation), width drives the card size. */
-  --phc-portrait-w: 84px;
+  /* Combatant token width (setting: small/medium/large). The Pokémon mini
+     token in the drawer is always fixed at 30px. */
+  --phc-portrait-w: 100px;
+  --phc-poke-w: 30px;
 
   --phc-transition: 0.16s ease;
 }
@@ -153,7 +143,7 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
   overflow-y: hidden;
   padding-bottom: 2px;
   scrollbar-width: thin;
-  scrollbar-color: var(--phc-neutral) transparent;
+  scrollbar-color: var(--phc-scroll) transparent;
 }
 
 .phc-rows::-webkit-scrollbar {
@@ -161,7 +151,7 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
 }
 
 .phc-rows::-webkit-scrollbar-thumb {
-  background: var(--phc-neutral);
+  background: var(--phc-scroll);
   border-radius: 999px;
 }
 
@@ -195,42 +185,49 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
   filter: grayscale(0.6);
 }
 
-/* Token frame — the only "background" in the bar, painted over the art. */
-.phc-token {
+/* Token frame — the only "background" in the bar, painted behind the art.
+   `background-color` (not the `background` shorthand) so it survives theme
+   resets; the faction colour shows around the art since the img is `contain`. */
+.phc-token,
+button.phc-token {
   position: relative;
   box-sizing: border-box;
   display: block;
   width: var(--phc-portrait-w);
   aspect-ratio: 3 / 4;
-  padding: 0;
+  padding: 3px;
   margin: 0;
   overflow: hidden;
-  border: 1px solid var(--phc-neutral-bg);
+  border: 2px solid var(--phc-neutral-bg);
   border-radius: var(--phc-radius-sm);
-  background: var(--phc-neutral-bg);
+  background-color: var(--phc-neutral-bg);
+  box-shadow: none;
   color: inherit;
   font: inherit;
   cursor: pointer;
   transition: border-color var(--phc-transition);
 }
 
-/* Ally = white background/border, enemy = dark grey background/border. */
-.phc-card--ally .phc-token {
-  background: var(--phc-ally-bg);
+/* Ally = white frame, enemy = dark grey, neutral = mid grey. */
+.phc-card--ally .phc-token,
+.phc-card--ally button.phc-token {
+  background-color: var(--phc-ally-bg);
   border-color: var(--phc-ally-bg);
 }
 
-.phc-card--enemy .phc-token {
-  background: var(--phc-enemy-bg);
+.phc-card--enemy .phc-token,
+.phc-card--enemy button.phc-token {
+  background-color: var(--phc-enemy-bg);
   border-color: var(--phc-enemy-bg);
 }
 
-.phc-card--neutral .phc-token {
-  background: var(--phc-neutral-bg);
+.phc-card--neutral .phc-token,
+.phc-card--neutral button.phc-token {
+  background-color: var(--phc-neutral-bg);
   border-color: var(--phc-neutral-bg);
 }
 
-/* Full token art — never cropped. */
+/* Full token art — never cropped, transparent so the faction fill shows. */
 .phc-token__img {
   display: block;
   width: 100%;
@@ -238,6 +235,7 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
   object-fit: contain;
   border: none;
   background: transparent;
+  box-shadow: none;
 }
 
 /* Initiative digits chip (over the token) */
@@ -327,7 +325,7 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 66px;
+  min-height: calc(var(--phc-poke-w) + 6px);
   padding: 1px;
   background: transparent;
   border: none;
@@ -344,8 +342,10 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
   filter: grayscale(0.7);
 }
 
+/* Pokémon mini token — always 30px wide, whatever the combatant size is. */
 .phc-token--mini {
   width: var(--phc-poke-w);
+  min-width: var(--phc-poke-w);
 }
 
 /* ------------------------------------------------------------------ */

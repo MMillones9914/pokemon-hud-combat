@@ -8,10 +8,11 @@ describe("classifyFaction", () => {
 
   it("marks hostile tokens as enemies for the GM", () => {
     expect(classifyFaction(-1, null)).toBe("enemy");
+    expect(classifyFaction(-2, null)).toBe("enemy");
   });
 
-  it("treats neutral tokens as neither ally nor enemy", () => {
-    expect(classifyFaction(0, null)).toBe("neutral");
+  it("treats Foundry's secret/neutral 0 as an ally so it gets the white frame", () => {
+    expect(classifyFaction(0, null)).toBe("ally");
   });
 
   it("compares against the viewing player's own disposition", () => {
@@ -24,6 +25,7 @@ describe("classifyFaction", () => {
   it("falls back to the global reading when the player token is neutral", () => {
     expect(classifyFaction(-1, 0)).toBe("enemy");
     expect(classifyFaction(1, 0)).toBe("ally");
+    expect(classifyFaction(0, 0)).toBe("ally");
   });
 
   it("returns neutral for missing or invalid dispositions", () => {

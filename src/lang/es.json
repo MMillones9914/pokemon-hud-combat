@@ -45,11 +45,11 @@
       },
       "tokenSize": {
         "name": "Tamaño del token del combatiente",
-        "hint": "Ancho máximo del token principal (los Pokémon siempre son pequeños).",
+        "hint": "Ancho del token principal del combatiente (el Pokémon invocado se mantiene en 30px).",
         "choices": {
-          "small": "Pequeño (100px)",
-          "medium": "Mediano (150px)",
-          "large": "Grande (250px)"
+          "small": "Pequeño (50px)",
+          "medium": "Mediano (100px)",
+          "large": "Grande (150px)"
         }
       }
     },

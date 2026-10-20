@@ -45,11 +45,11 @@
       },
       "tokenSize": {
         "name": "Combatant token size",
-        "hint": "Maximum width of the main combatant token (pokemon stays small).",
+        "hint": "Width of the main combatant token (the summoned Pokémon stays at 30px).",
         "choices": {
-          "small": "Small (100px)",
-          "medium": "Medium (150px)",
-          "large": "Large (250px)"
+          "small": "Small (50px)",
+          "medium": "Medium (100px)",
+          "large": "Large (150px)"
         }
       }
     },

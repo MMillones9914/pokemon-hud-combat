@@ -137,12 +137,12 @@ describe("buildCombatGroups", () => {
     expect(groups[0].defeated).toBe(true);
   });
 
-  it("colors allies celeste and enemies red by token disposition", () => {
+  it("colors friendly and secret combatants as allies, hostile ones as enemies", () => {
     const groups = buildCombatGroups(
       [
         raw({ id: "ally", initiative: 5, disposition: 1 }),
         raw({ id: "enemy", initiative: 5, disposition: -1 }),
-        raw({ id: "neutral", initiative: 5, disposition: 0 }),
+        raw({ id: "secret", initiative: 5, disposition: 0 }),
         raw({ id: "missing", initiative: 5, disposition: null })
       ],
       {}
@@ -150,7 +150,7 @@ describe("buildCombatGroups", () => {
     expect(groups.map((g) => [g.combatantId, g.faction])).toEqual([
       ["ally", "ally"],
       ["enemy", "enemy"],
-      ["neutral", "neutral"],
+      ["secret", "ally"],
       ["missing", "neutral"]
     ]);
   });
