@@ -70,7 +70,7 @@ interface CombatHudContext
     foundry.applications.api.ApplicationV2.RenderContext {
   started: boolean;
   isGM: boolean;
-  tokenWidth: string;
+  tokenHeight: string;
   groups: TemplateGroup[];
   hasGroups: boolean;
 }
@@ -164,7 +164,7 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
     foundry.applications.api.HandlebarsApplicationMixin.HandlebarsTemplatePart
   > = {
     bar: {
-      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.2.4.hbs`,
+      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.2.5.hbs`,
       id: `${MODULE_ID}-bar`,
       root: true
     }
@@ -181,7 +181,7 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
     return {
       started: view.started,
       isGM: game.user?.isGM === true,
-      tokenWidth: tokenWidthCss(),
+      tokenHeight: tokenHeightCss(),
       groups,
       hasGroups: groups.length > 0
     };
@@ -409,8 +409,8 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
 
   #applySize(): void {
     const el = this.element as HTMLElement;
-    el.style.setProperty("--phc-portrait-w", tokenWidthCss(), "important");
-    el.style.setProperty("--phc-poke-w", POKEMON_TOKEN_W, "important");
+    el.style.setProperty("--phc-token-h", tokenHeightCss(), "important");
+    el.style.setProperty("--phc-poke-h", pokemonHeightCss(), "important");
   }
 
   #handleError(where: string, err: unknown): void {
@@ -501,16 +501,28 @@ function schedule(action: "show" | "hide" | "refresh"): void {
   scheduledFlush = requestAnimationFrame(flushSchedule);
 }
 
-/** Combatant token width from the `tokenSize` setting: small/medium/large. */
-function tokenWidthCss(): string {
+/**
+ * Combatant token HEIGHT from the `tokenSize` setting.
+ * small → 100px, medium → 150px, large → 200px (default: medium).
+ * Width is derived in CSS from the height (3:4 portrait ratio).
+ */
+function tokenHeightCss(): string {
+  const size = getSettings().tokenSize;
+  if (size === "small") return "100px";
+  if (size === "large") return "200px";
+  return "150px";
+}
+
+/**
+ * Summoned Pokémon mini-token HEIGHT: small → 50px, medium → 100px,
+ * large → 150px (mirrors the combatant scale).
+ */
+function pokemonHeightCss(): string {
   const size = getSettings().tokenSize;
   if (size === "small") return "50px";
   if (size === "large") return "150px";
   return "100px";
 }
-
-/** The summoned Pokémon mini token is always a fixed 30px. */
-const POKEMON_TOKEN_W = "30px";
 
 export function isCombatHudVisible(): boolean {
   return activeInstance?.rendered === true;

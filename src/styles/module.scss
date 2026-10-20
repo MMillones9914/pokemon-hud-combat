@@ -1,8 +1,13 @@
 /* ------------------------------------------------------------------ */
 /* Design tokens                                                       */
+/*                                                                     */
+/* Declared on the AppV2 root so an inline override set by              */
+/* `#applySize()` on the same element wins (a declaration on `.phc-bar` */
+/* would shadow the inherited inline value for the whole subtree).      */
 /* ------------------------------------------------------------------ */
 
-.phc-bar {
+[id="pokemon-hud-combat.bar"],
+[class*="pokemon-hud-combat"][class*="phc-top-bar"] {
   --phc-font: "Signika", "Alegreya SC", sans-serif;
   --phc-radius-sm: 6px;
 
@@ -21,10 +26,17 @@
   --phc-icon-dim: #b9b9b9;
   --phc-btn-border: rgba(255, 255, 255, 0.55);
 
-  /* Combatant token width (setting: small/medium/large). The Pokémon mini
-     token in the drawer is always fixed at 30px. */
-  --phc-portrait-w: 100px;
-  --phc-poke-w: 30px;
+  /* Token HEIGHT drives the card size (setting: small/medium/large →
+     100/150/200px). Width follows the 3:4 portrait ratio. The Pokémon mini
+     token in the drawer is its own height (50/100/150px), capped so it never
+     grows past the trainer card. `#applySize()` overrides these inline on
+     this same element. */
+  --phc-token-h: 150px;
+  --phc-poke-h: 100px;
+
+  /* Widths derived from the heights (3:4 portrait). */
+  --phc-portrait-w: calc(var(--phc-token-h) * 0.75);
+  --phc-poke-w: calc(var(--phc-poke-h) * 0.75);
 
   --phc-transition: 0.16s ease;
 }
@@ -187,14 +199,15 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
 
 /* Token frame — the only "background" in the bar, painted behind the art.
    `background-color` (not the `background` shorthand) so it survives theme
-   resets; the faction colour shows around the art since the img is `contain`. */
+   resets; the faction colour shows around the art since the img is `contain`.
+   Height is the driver; width follows the 3:4 portrait ratio. */
 .phc-token,
 button.phc-token {
   position: relative;
   box-sizing: border-box;
   display: block;
   width: var(--phc-portrait-w);
-  aspect-ratio: 3 / 4;
+  height: var(--phc-token-h);
   padding: 3px;
   margin: 0;
   overflow: hidden;
@@ -325,7 +338,7 @@ button.phc-token {
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: calc(var(--phc-poke-w) + 6px);
+  min-height: var(--phc-poke-h);
   padding: 1px;
   background: transparent;
   border: none;
@@ -342,10 +355,13 @@ button.phc-token {
   filter: grayscale(0.7);
 }
 
-/* Pokémon mini token — always 30px wide, whatever the combatant size is. */
+/* Pokémon mini token — its own height (50/100/150), never wider/taller than
+   the trainer card above it. */
 .phc-token--mini {
   width: var(--phc-poke-w);
-  min-width: var(--phc-poke-w);
+  height: var(--phc-poke-h);
+  max-width: 100%;
+  max-height: var(--phc-token-h);
 }
 
 /* ------------------------------------------------------------------ */
