@@ -104,6 +104,40 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
   #timer: ReturnType<typeof setTimeout> | null = null;
   #onKeyBound?: (event: KeyboardEvent) => void;
   #onClickBound?: (event: Event) => void;
+  #onResizeBound?: () => void;
+
+  /**
+   * Frame height (in px) sized so at least `PORTRAITS_PER_ROW` portraits fit
+   * in a single row on each side, while keeping the 150:400 ratio (0.375) and
+   * never overflowing the screen height. Written as the `--phc-vs-h` CSS
+   * custom property; a plain pixel number avoids any `min()`/`calc()`/unit
+   * resolution trouble inside Foundry's stylesheet.
+   */
+  #fitFrames(): void {
+    try {
+      const el = this.element as HTMLElement | null;
+      if (!el) return;
+      const vw = window.innerWidth || document.documentElement.clientWidth || 1280;
+      const vh = window.innerHeight || document.documentElement.clientHeight || 720;
+      const ratio = 0.375; // 150:400
+      const perRow = 5;
+      // Roughly what each side gets: half the width, minus the middle spacer,
+      // page padding and the gaps required by one row of frames.
+      const gutter = Math.max(4, Math.min(14, vw * 0.009));
+      const gapTotal = gutter * (perRow - 1);
+      const middle = Math.max(70, Math.min(170, vw * 0.09));
+      const padding = Math.max(16, vh * 0.036);
+      const sideWidth = (vw - middle - padding) / 2;
+      const byWidth = (sideWidth - gapTotal) / perRow / ratio;
+      // Never taller than ~68% of the viewport (leaves room for the picker,
+      // the team name and the hint), and never absurdly small.
+      const byHeight = vh * 0.68;
+      const h = Math.max(120, Math.min(byWidth, byHeight));
+      el.style.setProperty("--phc-vs-h", `${Math.floor(h)}px`);
+    } catch (err) {
+      this.#handleError("fitFrames", err);
+    }
+  }
 
   override async _prepareContext(
     _options: DeepPartial<BattleIntroRenderOptions> & { isFirstRender?: boolean }
@@ -144,10 +178,14 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
     try {
       this.#onClickBound = (event: Event) => void this.#onClick(event);
       this.#onKeyBound = (event: KeyboardEvent) => this.#onKey(event);
+      this.#onResizeBound = () => this.#fitFrames();
       this.element.addEventListener("click", this.#onClickBound);
       window.addEventListener("keydown", this.#onKeyBound);
+      window.addEventListener("resize", this.#onResizeBound);
       // Keep the combat bar out of sight while the VS screen is up.
       setCombatHudSuppressed(true);
+      // Size the portraits before the first paint so nothing flashes.
+      this.#fitFrames();
     } catch (err) {
       this.#handleError("bind events", err);
     }
@@ -162,6 +200,7 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
     } catch (err) {
       this.#handleError("_onRender", err);
     }
+    this.#fitFrames();
     this.#scheduleAutoClose();
   }
 
@@ -170,6 +209,7 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
     try {
       if (this.#onClickBound) this.element.removeEventListener("click", this.#onClickBound);
       if (this.#onKeyBound) window.removeEventListener("keydown", this.#onKeyBound);
+      if (this.#onResizeBound) window.removeEventListener("resize", this.#onResizeBound);
     } catch {
       /* element already detached */
     }

@@ -460,55 +460,77 @@ button.phc-token {
 
 /* ------------------------------------------------------------------ */
 /* Battle intro (VS screen) — full-screen overlay, shown on createCombat */
+/*                                                                    */
+/* Foundry ships aggressive global rules for `img`, `li` and          */
+/* `.window-content` that beat plain module classes, so every size    */
+/* here is forced with a high-specificity selector (`[id="..."]`) and  */
+/* `!important`, and the portrait height is handed to the CSS as a     */
+/* plain pixel value from JS (`--phc-vs-h`).                          */
 /* ------------------------------------------------------------------ */
 
-/* ApplicationV2 shell: no frame, covers the viewport, above everything.
-   The darkened backdrop lives HERE so it always covers the whole screen
-   regardless of how the inner content is laid out. */
+/* App shell: a fixed, viewport-sized CSS grid that centers its single
+   child. Centering lives here (not on the inner block) so no Foundry
+   height/position override can push the content to the top. */
 [id="pokemon-hud-combat.battle-intro"] {
   position: fixed !important;
   inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
   width: 100vw !important;
+  min-width: 100vw !important;
+  max-width: 100vw !important;
   height: 100vh !important;
-  max-width: none !important;
+  min-height: 100vh !important;
+  max-height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  grid-template-rows: 1fr !important;
+  place-items: center !important;
+  place-content: center !important;
+  overflow: hidden !important;
   z-index: 100;
   font-family: var(--phc-font, "Signika", "Alegreya SC", sans-serif);
-  background: rgba(0, 0, 0, 0.78);
+  /* Darkened backdrop, always covering the whole viewport. */
+  background: rgba(0, 0, 0, 0.78) !important;
   backdrop-filter: blur(3px) brightness(0.4);
   -webkit-backdrop-filter: blur(3px) brightness(0.4);
 }
 
+/* Foundry wraps every AppV2 part in `.window-content`; flatten it. */
 [id="pokemon-hud-combat.battle-intro"] .window-content {
-  width: 100%;
-  height: 100%;
-  padding: 0 !important;
+  display: contents !important;
+  width: 100vw !important;
+  height: 100vh !important;
   margin: 0 !important;
+  padding: 0 !important;
   border: none !important;
   border-radius: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
-  overflow: hidden;
+  overflow: visible !important;
 }
 
-/* Content layer: a full-screen flex column that centers the whole presentation.
-   `--phc-vs-h` sizes the portrait frames from the screen: sizing from the width
-   keeps ~5 per side on a 16:9 screen, and the `vh` cap stops them overflowing a
-   short screen. Frame width derives from it (0.375 ratio = 150:400). */
+/* Content block: stays inside the grid cell so the whole thing (picker +
+   stage + hint) is centered as one group, on both axes. */
 .phc-vs {
   --phc-vs-h: min(19vw, 60vh);
-  position: absolute;
-  inset: 0;
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: clamp(10px, 2.4vh, 26px);
+  gap: clamp(8px, 1.8vh, 22px);
   box-sizing: border-box;
-  padding: clamp(10px, 2.4vh, 28px);
+  max-width: 100vw;
+  max-height: 100vh;
+  padding: clamp(8px, 1.8vh, 22px);
   color: #ffffff;
   background: transparent;
   cursor: pointer;
-  overflow: auto;
   animation: phc-vs-in 260ms ease-out both;
 }
 
@@ -521,8 +543,8 @@ button.phc-token {
   }
 }
 
-/* GM picker: encounter kind + rival team, above the stage. Centered with the
-   rest of the presentation so the whole screen reads as one block. */
+/* GM picker: encounter kind + rival team. Part of the centered group, so it
+   sits in the middle of the screen with everything else. */
 .phc-vs__picker {
   display: flex;
   flex-wrap: wrap;
@@ -557,21 +579,42 @@ button.phc-token {
   font-size: 13px;
 }
 
-/* Stage: players | VS | rivals. The wide bar crosses the entire stage behind
-   the sides; the two sides sit above it, centered. */
+/* Stage: players | VS | rivals. `position: relative` anchors the bar. */
 .phc-vs__stage {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0;
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   width: 100%;
-  min-height: 0;
+  max-width: 100vw;
 }
 
-/* Each side is a centered column so every team name sits under the whole row
-   of portraits, and the portraits stay centered whether there are 1 or 5. */
+/* A bar crossing the ENTIRE stage, vertically centered on the portraits. */
+.phc-vs__bar {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  display: block;
+  height: 3px;
+  margin: 0;
+  padding: 0;
+  transform: translateY(-50%);
+  background: linear-gradient(
+    90deg,
+    rgba(74, 222, 128, 0.15),
+    #e8c76a 50%,
+    rgba(248, 113, 113, 0.15)
+  );
+  box-shadow: 0 0 12px 1px rgba(232, 199, 106, 0.4);
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Each side: a centered column (portraits on top, team name below). The
+   `flex-basis: 50%` guarantee is what keeps both sides symmetric. */
 .phc-vs__side {
   display: flex;
   flex-direction: column;
@@ -584,31 +627,50 @@ button.phc-token {
   z-index: 1;
 }
 
-/* One row per side; up to 5 portraits fit across a 16:9 screen (sized by the
-   CSS vars below), and it wraps gracefully if there are more. */
-.phc-vs__list {
+/* Middle spacer that keeps room for the VS badge between both sides. */
+.phc-vs__middle {
+  position: relative;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: clamp(6px, 1.2vw, 16px);
+  flex: 0 0 auto;
+  width: clamp(70px, 9vw, 170px);
+  z-index: 2;
+}
+
+/* One row per side, always: 5 portraits must fit across half a 16:9 screen.
+   `nowrap` forbids wrapping; the JS-sized frames guarantee they fit. */
+.phc-vs__list {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(4px, 0.9vw, 14px);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-/* Portrait frames. The height scales with the viewport and the width keeps the
-   3:8 ratio (150:400), so ~5 of them always fit across half a 16:9 screen and
-   the whole row stays centered. */
-.phc-vs__actor {
-  box-sizing: border-box;
-  width: calc(var(--phc-vs-h) * 0.375);
-  height: var(--phc-vs-h);
+/* Portrait frames. `--phc-vs-h` is set in px by the app; the width derives
+   from the 150:400 ratio. High specificity + `!important` + explicit min/max
+   defeat Foundry's global list/image rules. */
+[id="pokemon-hud-combat.battle-intro"] .phc-vs__actor {
+  box-sizing: border-box !important;
+  display: block !important;
+  flex: 0 0 auto !important;
+  width: calc(var(--phc-vs-h) * 0.375) !important;
+  min-width: calc(var(--phc-vs-h) * 0.375) !important;
+  max-width: calc(var(--phc-vs-h) * 0.375) !important;
+  height: var(--phc-vs-h) !important;
+  min-height: var(--phc-vs-h) !important;
+  max-height: var(--phc-vs-h) !important;
+  margin: 0 !important;
   padding: 3px;
   overflow: hidden;
   border: 2px solid #3a3a3a;
   border-radius: 3px;
   background-color: rgba(6, 6, 6, 0.72);
+  list-style: none !important;
 }
 
 .phc-vs__side--players .phc-vs__actor {
@@ -619,20 +681,31 @@ button.phc-token {
   box-shadow: 0 0 14px 2px rgba(248, 113, 113, 0.55);
 }
 
-.phc-vs__img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  border: none;
+/* The art fills the frame exactly and is cropped, never shown at its own
+   size: every box dimension is pinned to 100% of the frame. */
+[id="pokemon-hud-combat.battle-intro"] .phc-vs__img {
+  display: block !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  max-height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  object-fit: cover !important;
+  object-position: center !important;
+  background: transparent !important;
 }
 
-/* Team name: centered under every portrait of its side. */
+/* Team name, centered under the full row of its side. */
 .phc-vs__team {
   align-self: center;
   max-width: 100%;
-  font-size: clamp(12px, 1.6vh, 18px);
+  font-size: clamp(11px, 1.7vh, 18px);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-align: center;
@@ -647,47 +720,21 @@ button.phc-token {
 }
 
 .phc-vs__side--rivals .phc-vs__team {
-  color: #ffa2a2;
+  color: #f87171;
 }
 
-/* The VS badge: a narrow spacer in the flow so both sides leave room for it in
-   the middle. The line itself (`.phc-vs__bar`) is positioned on the stage. */
-.phc-vs__middle {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  width: clamp(90px, 11vw, 200px);
-  z-index: 2;
-}
-
-/* Full-width line crossing everything, vertically centered on the portraits. */
-.phc-vs__bar {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  display: block;
-  height: 3px;
-  transform: translateY(-50%);
-  background: linear-gradient(90deg, rgba(74, 222, 128, 0.15), #e8c76a 50%, rgba(248, 113, 113, 0.15));
-  box-shadow: 0 0 12px 1px rgba(232, 199, 106, 0.4);
-  z-index: 0;
-  pointer-events: none;
-}
-
+/* The VS badge, dead-center over the bar. */
 .phc-vs__vs {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  padding: 8px 22px;
+  padding: clamp(4px, 0.9vh, 8px) clamp(12px, 1.6vw, 22px);
   border: 2px solid #e8c76a;
   border-radius: 3px;
   background: rgba(8, 8, 10, 0.95);
   color: var(--phc-gold, #e8c76a);
-  font-size: clamp(22px, 3.4vh, 40px);
+  font-size: clamp(20px, 3.4vh, 40px);
   font-weight: 800;
   letter-spacing: 0.12em;
   line-height: 1;
