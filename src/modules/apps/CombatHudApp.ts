@@ -166,7 +166,7 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
     foundry.applications.api.HandlebarsApplicationMixin.HandlebarsTemplatePart
   > = {
     bar: {
-      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.2.6.hbs`,
+      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.2.7.hbs`,
       id: `${MODULE_ID}-bar`,
       root: true
     }
@@ -504,25 +504,25 @@ function schedule(action: "show" | "hide" | "refresh"): void {
 }
 
 /**
- * Combatant token HEIGHT from the `tokenSize` setting.
- * small → 100px, medium → 150px, large → 200px (default: medium).
+ * Combatant (trainer/wild) token HEIGHT from the `tokenSize` setting.
+ * small → 100px, medium → 125px, large → 150px (default: medium).
  * Width is derived in CSS from the height (3:4 portrait ratio).
  */
 function tokenHeightCss(): string {
   const size = getSettings().tokenSize;
   if (size === "small") return "100px";
-  if (size === "large") return "200px";
-  return "150px";
+  if (size === "large") return "150px";
+  return "125px";
 }
 
 /**
- * Summoned Pokémon mini-token HEIGHT: small → 50px, medium → 100px,
- * large → 150px (mirrors the combatant scale).
+ * Summoned Pokémon mini-token HEIGHT: small → 75px, medium → 100px,
+ * large → 125px (always smaller than the trainer card).
  */
 function pokemonHeightCss(): string {
   const size = getSettings().tokenSize;
-  if (size === "small") return "50px";
-  if (size === "large") return "150px";
+  if (size === "small") return "75px";
+  if (size === "large") return "125px";
   return "100px";
 }
 

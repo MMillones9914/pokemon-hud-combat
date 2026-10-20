@@ -27,12 +27,11 @@
   --phc-turn-ally: #4ade80;
   --phc-turn-enemy: #f87171;
 
-  /* Token HEIGHT drives the card size (setting: small/medium/large →
-     100/150/200px). Width follows the 3:4 portrait ratio. The Pokémon mini
-     token in the drawer is its own height (50/100/150px), capped so it never
-     grows past the trainer card. `#applySize()` overrides these inline on
-     this same element. */
-  --phc-token-h: 150px;
+  /* Token HEIGHT drives the card size (setting: small/medium/large).
+     Trainers: 100/125/150px tall. Pokémon mini token: 75/100/125px tall.
+     Width follows the 3:4 portrait ratio. `#applySize()` overrides these
+     inline on this same element. */
+  --phc-token-h: 125px;
   --phc-poke-h: 100px;
 
   /* Widths derived from the heights (3:4 portrait). */
@@ -187,16 +186,20 @@ body.phc-native-hidden #sidebar [data-tab="combat"] {
   cursor: pointer;
 }
 
-/* Turn marker: brighten the frame itself (green ally / red enemy), so both
-   the actor card and the nested Pokémon glow with the same border colour. */
+/* Turn marker: a soft, diffused glow around the frame (green ally / red
+   enemy), so both the actor card and the nested Pokémon light up. */
 .phc-token--turn-ally {
   border-color: var(--phc-turn-ally) !important;
-  box-shadow: 0 0 0 2px var(--phc-turn-ally);
+  box-shadow:
+    0 0 10px 2px color-mix(in srgb, var(--phc-turn-ally) 75%, transparent),
+    0 0 3px 1px var(--phc-turn-ally);
 }
 
 .phc-token--turn-enemy {
   border-color: var(--phc-turn-enemy) !important;
-  box-shadow: 0 0 0 2px var(--phc-turn-enemy);
+  box-shadow:
+    0 0 10px 2px color-mix(in srgb, var(--phc-turn-enemy) 75%, transparent),
+    0 0 3px 1px var(--phc-turn-enemy);
 }
 
 .phc-card--defeated {

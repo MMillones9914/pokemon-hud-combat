@@ -10,7 +10,7 @@
       "endCombatConfirm": "End the current combat?",
       "toggleNative": "Show/hide Foundry's combat tracker",
       "rollHint": "Click: roll initiative · Alt: advantage · Ctrl: disadvantage",
-      "initiativeFlavor": "Initiative"
+      "initiativeFlavor": "{name} rolls initiative"
     },
     "error": {
       "noActivePokemon": "That trainer has no active Pokémon: summon one before rolling initiative."
@@ -49,8 +49,8 @@
         "hint": "Height of the main combatant token (width follows a 3:4 portrait ratio). The summoned Pokémon uses its own scale.",
         "choices": {
           "small": "Small (100px tall)",
-          "medium": "Medium (150px tall)",
-          "large": "Large (200px tall)"
+          "medium": "Medium (125px tall)",
+          "large": "Large (150px tall)"
         }
       }
     },

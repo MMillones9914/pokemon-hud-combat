@@ -371,9 +371,10 @@ function initiativeFormulaFor(combatant: Combatant, mode: InitiativeRollMode): s
  * The roll is built and posted explicitly through `Roll#toMessage()` rather
  * than letting `Combatant#rollInitiative` create it internally: that is the
  * path Dice So Nice intercepts (`chatMessage.isRoll` + a `rolls` array), so the
- * 3D animation plays. The resulting total is then written back onto the
- * combatant so initiative order updates.
+ * 3D animation plays. `game.dice3d.showForRoll` is also called explicitly as a
+ * belt-and-braces fallback for DSN configurations that miss the message.
  *
+ * The total is written back onto the combatant so initiative order updates.
  * `mode` applies advantage (Alt) / disadvantage (Ctrl) via the dice formula.
  */
 export async function rollCombatantInitiative(
@@ -385,15 +386,27 @@ export async function rollCombatantInitiative(
   const combatant = Array.from(combat.combatants).find((c) => c.id === combatantId);
   if (!combatant) return;
 
+  // Rule 1: never roll for a trainer with no active Pokémon (unless GM bypass).
+  const verdict = gateForCombatant(combatant);
+  if (!verdict.allowed) {
+    ui.notifications?.warn(game.i18n.localize(verdict.blockedKey ?? "pokemon-hud-combat.error.noActivePokemon"));
+    return;
+  }
+
+  const actor = combatantActor(combatant);
   const modeFormula = initiativeFormulaFor(combatant, mode);
   const formula = modeFormula ?? baseInitiativeFormula(combatant);
 
   const RollClass = (
     globalThis as {
-      Roll?: new (formula: string, data?: Record<string, unknown>) => {
+      Roll?: new (
+        formula: string,
+        data?: Record<string, unknown>
+      ) => {
         evaluate: () => Promise<unknown>;
         toMessage: (data?: Record<string, unknown>) => Promise<unknown>;
         total?: number;
+        data?: Record<string, unknown>;
       };
     }
   ).Roll;
@@ -406,38 +419,71 @@ export async function rollCombatantInitiative(
   // Preferred path: explicit Roll + toMessage → Dice So Nice animates it.
   if (typeof RollClass === "function" && typeof updateInitiative === "function") {
     try {
-      const roll = new RollClass(formula, {});
+      // Roll against the actor's data so `@` references resolve, and stamp the
+      // actor id so DSN picks the owner's dice appearance.
+      const rollData = (actor as unknown as { getRollData?: () => Record<string, unknown> })
+        ?.getRollData?.();
+      const roll = new RollClass(formula, {
+        ...(rollData ?? {}),
+        ...(actor?.id ? { actorId: actor.id } : {})
+      });
       await roll.evaluate();
       const total = typeof roll.total === "number" ? roll.total : 0;
 
       let speaker: unknown;
-      let whisper: unknown;
+      let whisper: string[] | undefined;
       try {
         const getSpeaker = (
           globalThis as {
             ChatMessage?: { getSpeaker?: (opts?: Record<string, unknown>) => unknown };
           }
         ).ChatMessage?.getSpeaker;
-        const actor = combatantActor(combatant);
         if (typeof getSpeaker === "function") {
           speaker = getSpeaker({ actor: actor ?? undefined, token: combatant.token ?? undefined });
         }
         // V14 setting: `core.rollMode` ("public" | "gm" | "blind" | "self").
         const messageMode = game.settings?.get("core", "rollMode");
-        // Whisper the initiative message to the GM for non-public modes.
-        if (messageMode && messageMode !== "public") {
-          whisper = Array.from(game.users ?? []).filter((u) => u.isGM).map((u) => u.id);
+        if (messageMode === "gm" || messageMode === "blind") {
+          const gms = Array.from(game.users ?? [])
+            .filter((u) => u.isGM)
+            .map((u) => u.id);
+          if (gms.length) whisper = gms;
+        } else if (messageMode === "self") {
+          whisper = [game.user?.id ?? ""].filter(Boolean);
         }
       } catch {
         speaker = undefined;
       }
 
+      const flavor =
+        game.i18n?.format("pokemon-hud-combat.hud.initiativeFlavor", { name: combatant.name }) ??
+        "Initiative";
+
       await roll.toMessage({
         speaker,
         whisper,
-        flavor: game.i18n?.localize("pokemon-hud-combat.hud.initiativeFlavor") ?? "Initiative",
+        flavor,
         flags: { "pokemon-hud-combat": { initiative: true } }
       });
+
+      // Belt-and-braces: ask Dice So Nice directly (no-op when it is absent).
+      try {
+        (
+          game as unknown as {
+            dice3d?: {
+              showForRoll?: (
+                roll: unknown,
+                user?: unknown,
+                synchronize?: boolean,
+                whisper?: unknown
+              ) => Promise<unknown>;
+            };
+          }
+        ).dice3d?.showForRoll?.(roll, game.user, true, whisper);
+      } catch {
+        // DSN not installed / older API — the message path already covers it.
+      }
+
       await updateInitiative.call(combatant, { initiative: total });
       return;
     } catch (err) {

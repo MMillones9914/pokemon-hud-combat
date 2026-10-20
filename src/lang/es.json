@@ -10,7 +10,7 @@
       "endCombatConfirm": "¿Terminar el combate actual?",
       "toggleNative": "Mostrar/ocultar el rastreador de Foundry",
       "rollHint": "Clic: tirar iniciativa · Alt: ventaja · Ctrl: desventaja",
-  "initiativeFlavor": "Iniciativa"
+  "initiativeFlavor": "{name} tira iniciativa"
     },
     "error": {
       "noActivePokemon": "Ese entrenador no tiene un Pokémon activo: invoca uno antes de tirar iniciativa."
@@ -49,8 +49,8 @@
         "hint": "Alto del token principal del combatiente (el ancho sigue una proporción 3:4 vertical). El Pokémon invocado usa su propia escala.",
         "choices": {
           "small": "Pequeño (100px de alto)",
-          "medium": "Mediano (150px de alto)",
-          "large": "Grande (200px de alto)"
+          "medium": "Mediano (125px de alto)",
+          "large": "Grande (150px de alto)"
         }
       }
     },
