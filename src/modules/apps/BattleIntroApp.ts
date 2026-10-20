@@ -101,6 +101,7 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
 
   #kind: EncounterKind = "trainers";
   #rivalTeam: string | null = null;
+  #confirmed = false;
   #timer: ReturnType<typeof setTimeout> | null = null;
   #onKeyBound?: (event: KeyboardEvent) => void;
   #onClickBound?: (event: Event) => void;
@@ -147,7 +148,7 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
     const rivalNames = view.rivalTeams;
     return {
       isGM,
-      showPicker: isGM,
+      showPicker: isGM && !this.#confirmed,
       kinds: ENCOUNTER_KINDS.map((value) => ({
         value,
         label: localize(encounterLabelKey(value)),
@@ -247,9 +248,33 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
       this.#onPickTeam(control);
       return;
     }
+    if (action === "start") {
+      // Confirmed: drop the GM picker so only the portraits remain on screen.
+      this.#confirmed = true;
+      void this.render({ force: true });
+      return;
+    }
     if (action === "noop") return;
     // Clicking the backdrop (or any non-control surface) skips the intro.
     this.#closeNow();
+  }
+
+  /**
+   * Rebuild the view from live combat data. Called while the screen is open
+   * when combatants arrive after the Combat document itself, which is the
+   * normal order on player clients (so they get the portraits too).
+   *
+   * Skipped while the GM is still choosing, so an open dropdown is never
+   * re-rendered out from under them; the GM's view refreshes on confirmation.
+   */
+  refreshView(): void {
+    if (!this.rendered) return;
+    if (!this.#confirmed && game.user?.isGM === true) return;
+    try {
+      void this.render();
+    } catch (err) {
+      this.#handleError("refreshView", err);
+    }
   }
 
   #onKey(event: KeyboardEvent): void {
@@ -308,6 +333,14 @@ export function hideBattleIntro(): void {
   // Safety net: `_onClose` restores this, but clear it even when there is no
   // live instance (e.g. the setting was turned off mid-presentation).
   else setCombatHudSuppressed(false);
+}
+
+/**
+ * Rebuild the open VS screen from live combat data. Safe to call at any time;
+ * a no-op when the screen is closed.
+ */
+export function refreshBattleIntro(): void {
+  activeInstance?.refreshView();
 }
 
 export function toggleBattleIntro(): void {

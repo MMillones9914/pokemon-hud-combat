@@ -83,6 +83,7 @@
       "title": "Battle",
       "encounterKind": "Encounter type",
       "rivalTeam": "Rival team",
+      "start": "Start battle",
       "skipHint": "Click or press any key to skip",
       "soon": "coming soon"
     },

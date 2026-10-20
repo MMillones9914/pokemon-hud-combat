@@ -82,6 +82,7 @@
       "title": "Combate",
       "encounterKind": "Tipo de encuentro",
       "rivalTeam": "Equipo rival",
+      "start": "Comenzar combate",
       "skipHint": "Haz clic o pulsa cualquier tecla para saltar",
       "soon": "próximamente"
     },

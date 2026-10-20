@@ -1,7 +1,8 @@
 {{!--
   Battle intro (VS) screen. Shown once when a combat is created.
   Left = player trainers, right = rival trainers, a "VS" bar across the middle.
-  GM-only controls (encounter type + rival team) sit above the bar.
+  The GM first picks the encounter kind (and rival team); once confirmed the
+  picker disappears so only the portraits and the team names remain.
 --}}
 <section class="phc-vs" data-duration="{{durationMs}}">
   {{#if showPicker}}
@@ -19,11 +20,14 @@
       <span class="phc-vs__field-label">{{localize "pokemon-hud-combat.battleIntro.rivalTeam"}}</span>
       <select class="phc-vs__select" data-action="pick-team">
         {{#each rivalTeams}}
-        <option value="{{this}}" {{#if selected}}selected{{/if}}>{{this}}</option>
+        <option value="{{this.label}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
         {{/each}}
       </select>
     </label>
     {{/if}}
+    <button type="button" class="phc-vs__start" data-action="start">
+      {{localize "pokemon-hud-combat.battleIntro.start"}}
+    </button>
   </div>
   {{/if}}
 

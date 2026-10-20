@@ -2,6 +2,7 @@ import "./styles/module.scss";
 import { registerApi } from "./modules/api";
 import {
   hideBattleIntro,
+  refreshBattleIntro,
   showBattleIntro
 } from "./modules/apps/BattleIntroApp";
 import { hideCombatHud, refreshCombatHud, syncCombatHud } from "./modules/apps/CombatHudApp";
@@ -47,10 +48,22 @@ Hooks.on("createCombat", (combat: Combat) => {
   syncCombatHud();
 });
 Hooks.on("deleteCombat", () => hideCombatHud());
-Hooks.on("updateCombat", () => refreshCombatHud());
-Hooks.on("createCombatant", () => refreshCombatHud());
-Hooks.on("updateCombatant", () => refreshCombatHud());
-Hooks.on("deleteCombatant", () => refreshCombatHud());
+Hooks.on("updateCombat", () => {
+  refreshCombatHud();
+  refreshBattleIntro();
+});
+Hooks.on("createCombatant", () => {
+  refreshCombatHud();
+  refreshBattleIntro();
+});
+Hooks.on("updateCombatant", () => {
+  refreshCombatHud();
+  refreshBattleIntro();
+});
+Hooks.on("deleteCombatant", () => {
+  refreshCombatHud();
+  refreshBattleIntro();
+});
 Hooks.on("combatStart", () => refreshCombatHud());
 Hooks.on("combatRound", () => refreshCombatHud());
 Hooks.on("combatTurn", () => refreshCombatHud());

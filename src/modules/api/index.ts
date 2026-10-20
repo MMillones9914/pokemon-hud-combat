@@ -22,7 +22,7 @@ export interface PokemonHudCombatApi {
 }
 
 const api: PokemonHudCombatApi = {
-  version: "0.3.3",
+  version: "0.3.4",
   show: showCombatHud,
   hide: hideCombatHud,
   toggle: toggleCombatHud,

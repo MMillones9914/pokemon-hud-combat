@@ -579,6 +579,27 @@ button.phc-token {
   font-size: 13px;
 }
 
+/* Confirm button: once clicked the whole picker disappears, leaving only the
+   portraits and the team names on screen. */
+.phc-vs__start {
+  box-sizing: border-box;
+  height: 28px;
+  padding: 0 18px;
+  border: 1px solid var(--phc-gold, #e8c76a);
+  border-radius: 3px;
+  background: rgba(232, 199, 106, 0.16);
+  color: var(--phc-gold, #e8c76a);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.phc-vs__start:hover {
+  background: rgba(232, 199, 106, 0.28);
+}
+
 /* Stage: players | VS | rivals. `position: relative` anchors the bar. */
 .phc-vs__stage {
   position: relative;
