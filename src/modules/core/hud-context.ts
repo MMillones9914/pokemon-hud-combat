@@ -539,7 +539,16 @@ export async function rollCombatantInitiative(
         }
       ).update;
       if (typeof updateInitiative === "function") {
-        await updateInitiative.call(combatant, { initiative: total });
+        try {
+          await updateInitiative.call(combatant, { initiative: total });
+        } catch (err) {
+          // Foundry refuses the update when the user does not own the actor.
+          // The dice were shown, but the score would be lost: say so.
+          logger.warn(`rollCombatantInitiative (write back): ${String(err)}`);
+          ui.notifications?.warn(
+            game.i18n.localize("pokemon-hud-combat.error.initiativeNotSaved")
+          );
+        }
       }
       return;
     } catch (err) {

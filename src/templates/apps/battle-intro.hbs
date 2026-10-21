@@ -6,9 +6,12 @@
   - `setup` (GM only): the GM picks the encounter type and types the encounter
     name in the bar on the rival side. Players see nothing at all yet.
   - presentation: once the GM presses "Comenzar combate" everybody sees the
-    portraits and the names, and the screen closes itself after a few seconds.
+    portraits and the names; the screen closes itself after a few seconds.
+
+  Every portrait lives inside a `.phc-vs__frame`: a vertical rhombus (diamond)
+  clipped out of the portrait box and tilted towards its own side of the bar.
 --}}
-<section class="phc-vs" data-duration="{{durationMs}}">
+<section class="phc-vs">
   {{#if setup}}
   <div class="phc-vs__picker" data-action="noop">
     <label class="phc-vs__field">
@@ -34,7 +37,9 @@
       <ul class="phc-vs__list">
         {{#each players}}
         <li class="phc-vs__actor" data-tooltip="{{name}}">
-          <img class="phc-vs__img" src="{{img}}" alt="" />
+          <span class="phc-vs__frame">
+            <img class="phc-vs__img" src="{{img}}" alt="" />
+          </span>
         </li>
         {{/each}}
       </ul>
@@ -51,7 +56,9 @@
       <ul class="phc-vs__list">
         {{#each rivals}}
         <li class="phc-vs__actor" data-tooltip="{{name}}">
-          <img class="phc-vs__img" src="{{img}}" alt="" />
+          <span class="phc-vs__frame">
+            <img class="phc-vs__img" src="{{img}}" alt="" />
+          </span>
         </li>
         {{/each}}
       </ul>

@@ -76,7 +76,6 @@ describe("language files", () => {
       "imageSource",
       "tokenSize",
       "battleIntro",
-      "battleIntroDuration",
       "playerTeamName"
     ]) {
       const entry = settings[key] as LangTree | undefined;

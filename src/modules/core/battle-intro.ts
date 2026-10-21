@@ -53,8 +53,6 @@ export interface BattleIntroView {
   playerTeam: string;
   /** Encounter name shown on the rival side of the VS bar. */
   encounterName: string;
-  /** Auto-close delay in milliseconds. */
-  durationMs: number;
 }
 
 function combatantActor(combatant: Combatant): Actor | null {
@@ -211,7 +209,6 @@ export function buildBattleIntroView(options?: {
     players,
     rivals,
     playerTeam: (options?.playerTeam ?? settings.playerTeamName ?? "").trim(),
-    encounterName: (options?.encounterName ?? "").trim(),
-    durationMs: Math.max(0, settings.battleIntroDuration) * 1000
+    encounterName: (options?.encounterName ?? "").trim()
   };
 }

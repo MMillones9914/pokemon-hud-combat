@@ -14,7 +14,8 @@
       "roundCounter": "Round"
     },
     "error": {
-      "noActivePokemon": "That trainer has no active Pokémon: summon one before rolling initiative."
+      "noActivePokemon": "That trainer has no active Pokémon: summon one before rolling initiative.",
+      "initiativeNotSaved": "The roll was posted, but Foundry refused to save the initiative: the character must belong to you (assign it to yourself, or ask the GM to do it)."
     },
     "settings": {
       "enabled": {
@@ -57,10 +58,6 @@
       "battleIntro": {
         "name": "Show the battle intro (VS screen)",
         "hint": "When a combat is created, the GM sets up the encounter (type and name); only then does the VS screen appear for everyone."
-      },
-      "battleIntroDuration": {
-        "name": "Battle intro duration (seconds)",
-        "hint": "How long the VS screen stays up before closing itself. It can always be skipped with a click or a key."
       },
       "playerTeamName": {
         "name": "Player team name",

@@ -14,7 +14,6 @@ declare global {
     "pokemon-hud-combat.imageSource": string;
     "pokemon-hud-combat.tokenSize": string;
     "pokemon-hud-combat.battleIntro": boolean;
-    "pokemon-hud-combat.battleIntroDuration": number;
     "pokemon-hud-combat.playerTeamName": string;
     "core.uiConfig": foundry.applications.settings.menus.UIConfig.GameUIConfiguration;
   }

@@ -20,6 +20,17 @@ import { setCombatHudSuppressed } from "./CombatHudApp";
 const MODULE_ID = "pokemon-hud-combat";
 const KEYS = "pokemon-hud-combat.battleIntro";
 
+/**
+ * How long the VS screen stays up before it closes by itself.
+ *
+ * It is a constant on purpose: the duration is not a setting any more, but the
+ * screen must still retire on its own so nobody is stuck staring at it. The
+ * countdown is anchored to `BattleIntroConfig.startedAt` — the instant the GM
+ * pressed "Comenzar combate" — so every client closes at the very same moment
+ * instead of "N seconds after I happened to receive the flag".
+ */
+const INTRO_DURATION_MS = 3500;
+
 interface KindOption {
   value: EncounterKind;
   label: string;
@@ -39,7 +50,6 @@ interface BattleIntroContext
   rivals: BattleIntroEntry[];
   playerTeam: string;
   encounterName: string;
-  durationMs: number;
 }
 
 interface BattleIntroConfiguration
@@ -169,6 +179,8 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
   /** Open the GM setup screen (encounter kind + name bar). */
   openSetup(): void {
     this.#phase = "setup";
+    // The setup screen waits for the GM: no countdown may be armed.
+    this.#clearTimer();
     void this.render({ force: true });
   }
 
@@ -178,7 +190,9 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
     this.#kind = config.kind;
     this.#encounterName = config.encounterName ?? "";
     this.#playerTeam = config.playerTeam ?? "";
-    this.#clearTimer();
+    // The countdown is scheduled ONCE, here: re-rendering the screen must
+    // never push the deadline further away.
+    this.#scheduleAutoClose(config);
     void this.render({ force: true });
   }
 
@@ -210,8 +224,7 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
       players: view.players,
       rivals: view.rivals,
       playerTeam: view.playerTeam,
-      encounterName: view.encounterName,
-      durationMs: view.durationMs
+      encounterName: view.encounterName
     };
   }
 
@@ -253,7 +266,6 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
     }
     this.#fitFrames();
     this.#restoreNameFocus();
-    this.#scheduleAutoClose();
   }
 
   override _onClose(options: DeepPartial<BattleIntroRenderOptions>): void {
@@ -414,15 +426,25 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
     void this.close();
   }
 
-  #scheduleAutoClose(): void {
+  /**
+   * Arm the auto-close, once, when the presentation starts.
+   *
+   * The deadline is absolute: `startedAt` is the moment the GM confirmed the
+   * encounter, so a client that receives the flag late still closes the screen
+   * at the same instant as everybody else. Re-renders never re-arm it — that
+   * was the bug that made the countdown never expire.
+   */
+  #scheduleAutoClose(config: BattleIntroConfig): void {
     this.#clearTimer();
     // The setup screen waits for the GM: it must not time out on its own.
     if (this.#phase !== "presentation") return;
-    if (!this.rendered || !this.element) return;
-    const root = this.element.querySelector<HTMLElement>(".phc-vs") ?? this.element;
-    const duration = Number(root?.dataset?.duration ?? 0);
-    const wait = Number.isFinite(duration) && duration > 0 ? duration : 0;
-    if (wait <= 0) return;
+    const startedAt =
+      typeof config?.startedAt === "number" && config.startedAt > 0 ? config.startedAt : Date.now();
+    const remaining = startedAt + INTRO_DURATION_MS - Date.now();
+    // Clamped on both ends: a client whose clock lags behind must not keep the
+    // screen up forever, and a client whose clock runs ahead must still show it
+    // long enough to be read.
+    const wait = Math.max(1200, Math.min(remaining, INTRO_DURATION_MS));
     this.#timer = setTimeout(() => this.#closeNow(), wait);
   }
 

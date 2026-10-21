@@ -12,8 +12,10 @@
       "rollHint": "Clic: tirar iniciativa · Alt: ventaja · Ctrl: desventaja",
       "initiativeFlavor": "{name} tira iniciativa",
       "roundCounter": "Ronda"
-    },    "error": {
-      "noActivePokemon": "Ese entrenador no tiene un Pokémon activo: invoca uno antes de tirar iniciativa."
+    },
+    "error": {
+      "noActivePokemon": "Ese entrenador no tiene un Pokémon activo: invoca uno antes de tirar iniciativa.",
+      "initiativeNotSaved": "La tirada se publicó, pero Foundry no dejó guardar la iniciativa: el personaje debe ser tuyo (asígnatelo o pídele al DJ que te lo asigne)."
     },
     "settings": {
       "enabled": {
@@ -56,10 +58,6 @@
       "battleIntro": {
         "name": "Mostrar la intro de combate (pantalla VS)",
         "hint": "Al crear un combate, el DJ prepara el encuentro (tipo y nombre) y solo entonces la pantalla VS aparece para todo el mundo."
-      },
-      "battleIntroDuration": {
-        "name": "Duración de la intro (segundos)",
-        "hint": "Cuánto tiempo permanece la pantalla VS antes de cerrarse sola. Siempre se puede saltar con un clic o una tecla."
       },
       "playerTeamName": {
         "name": "Nombre del equipo de los jugadores",

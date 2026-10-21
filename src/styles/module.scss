@@ -744,7 +744,11 @@ button.phc-token {
 
 /* Portrait frames. `--phc-vs-h` is set in px by the app; the width derives
    from the 150:400 ratio. High specificity + `!important` + explicit min/max
-   defeat Foundry's global list/image rules. */
+   defeat Foundry's global list/image rules.
+
+   The actor is only a layout box now: the visible shape is the vertical
+   rhombus drawn by `.phc-vs__frame` (a diamond clipped out of the box), so
+   the frame itself must not draw a rectangular border nor clip its child. */
 [id="pokemon-hud-combat.battle-intro"] .phc-vs__actor {
   box-sizing: border-box !important;
   display: block !important;
@@ -756,25 +760,70 @@ button.phc-token {
   min-height: var(--phc-vs-h) !important;
   max-height: var(--phc-vs-h) !important;
   margin: 0 !important;
-  padding: 3px;
-  overflow: hidden;
-  border: 2px solid #3a3a3a;
-  border-radius: 3px;
-  background-color: rgba(6, 6, 6, 0.72);
+  padding: 0 !important;
+  overflow: visible;
+  border: none !important;
+  background: transparent !important;
   list-style: none !important;
 }
 
-.phc-vs__side--players .phc-vs__actor {
-  box-shadow: 0 0 14px 2px rgba(74, 222, 128, 0.5);
+/* The rhombus itself: a tall diamond (pointy top and bottom) tilted towards
+   its own side of the VS bar. The tilt keeps every vertex inside the layout
+   box, so the row never overlaps itself. */
+[id="pokemon-hud-combat.battle-intro"] .phc-vs__frame {
+  position: relative;
+  box-sizing: border-box !important;
+  display: block !important;
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  max-height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  transform: rotate(var(--phc-vs-tilt, 0deg));
+  transform-origin: 50% 50%;
 }
 
-.phc-vs__side--rivals .phc-vs__actor {
-  box-shadow: 0 0 14px 2px rgba(248, 113, 113, 0.55);
+/* Coloured rim of the diamond, drawn 4px outside the art. */
+[id="pokemon-hud-combat.battle-intro"] .phc-vs__frame::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  background: var(--phc-vs-rim, #e8c76a);
+  opacity: 0.95;
 }
 
-/* The art fills the frame exactly and is cropped, never shown at its own
+/* Dark fill behind the art (the corners of the picture box stay empty). */
+[id="pokemon-hud-combat.battle-intro"] .phc-vs__frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  background: rgba(6, 6, 6, 0.8);
+}
+
+.phc-vs__side--players .phc-vs__frame {
+  --phc-vs-tilt: -9deg;
+  --phc-vs-rim: rgba(74, 222, 128, 0.95);
+  filter: drop-shadow(0 0 8px rgba(74, 222, 128, 0.45));
+}
+
+.phc-vs__side--rivals .phc-vs__frame {
+  --phc-vs-tilt: 9deg;
+  --phc-vs-rim: rgba(248, 113, 113, 0.95);
+  filter: drop-shadow(0 0 8px rgba(248, 113, 113, 0.5));
+}
+
+/* The art fills the diamond exactly and is cropped, never shown at its own
    size: every box dimension is pinned to 100% of the frame. */
 [id="pokemon-hud-combat.battle-intro"] .phc-vs__img {
+  position: relative;
+  z-index: 1;
   display: block !important;
   box-sizing: border-box !important;
   width: 100% !important;
@@ -790,6 +839,7 @@ button.phc-token {
   object-fit: cover !important;
   object-position: center !important;
   background: transparent !important;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
 }
 
 /* Team name, centered under the full row of its side. */

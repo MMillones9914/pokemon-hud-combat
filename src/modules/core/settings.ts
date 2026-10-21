@@ -9,7 +9,6 @@ export const SETTINGS = {
   imageSource: "imageSource",
   tokenSize: "tokenSize",
   battleIntro: "battleIntro",
-  battleIntroDuration: "battleIntroDuration",
   playerTeamName: "playerTeamName"
 } as const;
 
@@ -110,17 +109,6 @@ export function registerSettings(hooks?: SettingsHooks): void {
     onChange: () => hooks?.onBattleIntroChange?.()
   });
 
-  game.settings.register(SCOPE, SETTINGS.battleIntroDuration, {
-    name: "pokemon-hud-combat.settings.battleIntroDuration.name",
-    hint: "pokemon-hud-combat.settings.battleIntroDuration.hint",
-    scope: "world",
-    config: true,
-    type: Number,
-    range: { min: 1, max: 15, step: 1 },
-    default: 3,
-    onChange: () => hooks?.onBattleIntroChange?.()
-  });
-
   game.settings.register(SCOPE, SETTINGS.playerTeamName, {
     name: "pokemon-hud-combat.settings.playerTeamName.name",
     hint: "pokemon-hud-combat.settings.playerTeamName.hint",
@@ -141,7 +129,6 @@ export function getSettings(): {
   imageSource: "token" | "actor";
   tokenSize: "small" | "medium" | "large";
   battleIntro: boolean;
-  battleIntroDuration: number;
   playerTeamName: string;
 } {
   const rawSize = game.settings.get(SCOPE, SETTINGS.tokenSize) as string;
@@ -151,10 +138,6 @@ export function getSettings(): {
     | "large";
   const rawImg = game.settings.get(SCOPE, SETTINGS.imageSource) as string;
   const imageSource = rawImg === "actor" ? "actor" : "token";
-  const rawDuration = Number(game.settings.get(SCOPE, SETTINGS.battleIntroDuration));
-  const battleIntroDuration = Number.isFinite(rawDuration)
-    ? Math.min(Math.max(Math.round(rawDuration), 1), 15)
-    : 3;
   return {
     enabled: game.settings.get(SCOPE, SETTINGS.enabled) as boolean,
     autoShow: game.settings.get(SCOPE, SETTINGS.autoShow) as boolean,
@@ -164,7 +147,6 @@ export function getSettings(): {
     imageSource,
     tokenSize,
     battleIntro: game.settings.get(SCOPE, SETTINGS.battleIntro) as boolean,
-    battleIntroDuration,
     playerTeamName: (game.settings.get(SCOPE, SETTINGS.playerTeamName) as string) ?? ""
   };
 }
