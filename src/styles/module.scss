@@ -517,7 +517,13 @@ button.phc-token {
 /* Content block: stays inside the grid cell so the whole thing (picker +
    stage + hint) is centered as one group, on both axes. */
 .phc-vs {
-  --phc-vs-h: min(19vw, 60vh);
+  /* Fallbacks: the app overwrites them with plain pixels on every render
+     (see `BattleIntroApp#fitFrames`), which also beats this stylesheet.
+     `--phc-vs-skew` is the horizontal offset of the 20° slant (h * tan 20°)
+     and `--phc-vs-top` the card's short edge as a % of its bounding box. */
+  --phc-vs-h: min(17vw, 56vh);
+  --phc-vs-skew: calc(var(--phc-vs-h) * 0.36397);
+  --phc-vs-top: 50.7413%;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -730,37 +736,49 @@ button.phc-token {
 }
 
 /* One row per side, always: 5 portraits must fit across half a 16:9 screen.
-   `nowrap` forbids wrapping; the JS-sized frames guarantee they fit. */
+   `nowrap` forbids wrapping; the JS-sized frames guarantee they fit.
+
+   The row carries the metrics of the card: its short edge (`--phc-vs-card-w`),
+   the horizontal offset of the slant (`--phc-vs-skew`, in px) and the gap
+   between two cards (`--phc-vs-gap`). The cards are pulled back by the slant
+   (see `.phc-vs__actor`), so the gap here is only a fallback. */
 .phc-vs__list {
+  --phc-vs-gap: clamp(4px, 0.9vw, 14px);
+  --phc-vs-card-w: calc(var(--phc-vs-h) * 0.375);
+  --phc-vs-box-w: calc(var(--phc-vs-card-w) + var(--phc-vs-skew));
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
   justify-content: center;
-  gap: clamp(4px, 0.9vw, 14px);
+  gap: 0;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-/* Portrait frames. `--phc-vs-h` is set in px by the app; the width derives
-   from the 150:400 ratio. High specificity + `!important` + explicit min/max
-   defeat Foundry's global list/image rules.
+/* Portrait frames. `--phc-vs-h` is set in px by the app; the card keeps the
+   150:400 ratio (0.375) and is sheared by `SLANT_DEG` (20°), so its corners
+   are 70°/110°. High specificity + `!important` + explicit min/max defeat
+   Foundry's global list/image rules.
 
-   The actor is only a layout box now: the visible shape is the vertical
-   rhomboid drawn by `.phc-vs__frame` (a sheared rectangle clipped out of the
-   box), so the frame itself must not draw a rectangular border nor clip its
-   child. */
+   The actor is only a layout box: the visible shape is the vertical rhomboid
+   drawn by `.phc-vs__frame` (a sheared rectangle clipped out of the box), so
+   the frame itself must not draw a rectangular border nor clip its child.
+
+   The box is the rhomboid's BOUNDING box (short edge + slant). Every card but
+   the first is pulled back by the slant, so the cards keep a constant visible
+   gap and never overlap each other. */
 [id="pokemon-hud-combat.battle-intro"] .phc-vs__actor {
   box-sizing: border-box !important;
   display: block !important;
   flex: 0 0 auto !important;
-  width: calc(var(--phc-vs-h) * 0.375) !important;
-  min-width: calc(var(--phc-vs-h) * 0.375) !important;
-  max-width: calc(var(--phc-vs-h) * 0.375) !important;
+  width: var(--phc-vs-box-w) !important;
+  min-width: var(--phc-vs-box-w) !important;
+  max-width: var(--phc-vs-box-w) !important;
   height: var(--phc-vs-h) !important;
   min-height: var(--phc-vs-h) !important;
   max-height: var(--phc-vs-h) !important;
-  margin: 0 !important;
+  margin: 0 0 0 calc(var(--phc-vs-gap) - var(--phc-vs-skew)) !important;
   padding: 0 !important;
   overflow: visible;
   border: none !important;
@@ -768,22 +786,27 @@ button.phc-token {
   list-style: none !important;
 }
 
+[id="pokemon-hud-combat.battle-intro"] .phc-vs__actor:first-child {
+  margin-left: 0 !important;
+}
+
 /* The rhomboid itself: a tall PARALLELOGRAM — a rectangle sheared sideways
-   (opposite sides parallel and equal, adjacent sides unequal) — plus a few
-   degrees of tilt towards its own side of the VS bar.
+   (opposite sides parallel and equal, adjacent sides unequal). The slant is
+   20°, so the corners are 70° and 110°.
 
    The outline lives in `--phc-vs-shape` (a `polygon()`) so the art, the dark
-   fill and the rim share exactly the same silhouette; each side only
-   mirrors the polygon. The frame itself is never clipped (that would cut
-   the rim) and the tilt keeps every corner inside the row's gap, so
-   neighbouring portraits never overlap. */
+   fill and the rim share exactly the same silhouette; each side only mirrors
+   the polygon. The frame itself is never clipped (that would cut the rim).
+
+   `--phc-vs-top` is the card's short edge as a percentage of the bounding
+   box: the players' card keeps it on the top-left corner (and pushes the
+   bottom edge to the right, so it leans left), the rivals' card mirrors it. */
 [id="pokemon-hud-combat.battle-intro"] .phc-vs__frame {
-  --phc-vs-skew: 24%;
   --phc-vs-shape: polygon(
     0% 0%,
-    calc(100% - var(--phc-vs-skew)) 0%,
+    var(--phc-vs-top) 0%,
     100% 100%,
-    var(--phc-vs-skew) 100%
+    calc(100% - var(--phc-vs-top)) 100%
   );
   position: relative;
   box-sizing: border-box !important;
@@ -798,8 +821,6 @@ button.phc-token {
   padding: 0 !important;
   border: none !important;
   background: transparent !important;
-  transform: rotate(var(--phc-vs-tilt, 0deg));
-  transform-origin: 50% 50%;
 }
 
 /* Coloured rim of the rhomboid, drawn 4px outside the art. */
@@ -807,7 +828,7 @@ button.phc-token {
   content: "";
   position: absolute;
   inset: -4px;
-  clip-path: var(--phc-vs-shape, polygon(0% 0%, 76% 0%, 100% 100%, 24% 100%));
+  clip-path: var(--phc-vs-shape, polygon(0% 0%, 50.7413% 0%, 100% 100%, 49.2587% 100%));
   background: var(--phc-vs-rim, #e8c76a);
   opacity: 0.95;
 }
@@ -817,33 +838,24 @@ button.phc-token {
   content: "";
   position: absolute;
   inset: 0;
-  clip-path: var(--phc-vs-shape, polygon(0% 0%, 76% 0%, 100% 100%, 24% 100%));
+  clip-path: var(--phc-vs-shape, polygon(0% 0%, 50.7413% 0%, 100% 100%, 49.2587% 100%));
   background: rgba(6, 6, 6, 0.8);
 }
 
-/* Players lean to the left (the top edge is shifted left), rivals mirror
-   them and lean to the right: each rhomboid points at its own side.
+/* Players lean to the left (their top edge is the left one), the rivals
+   mirror them and lean to the right: the two groups form the classic "VS"
+   cross, each card pointing at its own corner of the screen.
    The `[id=...]` prefix keeps these overrides above the frame's defaults. */
 [id="pokemon-hud-combat.battle-intro"] .phc-vs__side--players .phc-vs__frame {
-  --phc-vs-tilt: -5deg;
-  --phc-vs-skew: 24%;
-  --phc-vs-shape: polygon(
-    0% 0%,
-    calc(100% - var(--phc-vs-skew)) 0%,
-    100% 100%,
-    var(--phc-vs-skew) 100%
-  );
   --phc-vs-rim: rgba(74, 222, 128, 0.95);
   filter: drop-shadow(0 0 8px rgba(74, 222, 128, 0.45));
 }
 
 [id="pokemon-hud-combat.battle-intro"] .phc-vs__side--rivals .phc-vs__frame {
-  --phc-vs-tilt: 5deg;
-  --phc-vs-skew: 24%;
   --phc-vs-shape: polygon(
-    var(--phc-vs-skew) 0%,
+    calc(100% - var(--phc-vs-top)) 0%,
     100% 0%,
-    calc(100% - var(--phc-vs-skew)) 100%,
+    var(--phc-vs-top) 100%,
     0% 100%
   );
   --phc-vs-rim: rgba(248, 113, 113, 0.95);
@@ -870,7 +882,7 @@ button.phc-token {
   object-fit: cover !important;
   object-position: center !important;
   background: transparent !important;
-  clip-path: var(--phc-vs-shape, polygon(0% 0%, 76% 0%, 100% 100%, 24% 100%));
+  clip-path: var(--phc-vs-shape, polygon(0% 0%, 50.7413% 0%, 100% 100%, 49.2587% 100%));
 }
 
 /* Team name, centered under the full row of its side. */

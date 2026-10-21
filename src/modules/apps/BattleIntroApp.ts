@@ -31,6 +31,25 @@ const KEYS = "pokemon-hud-combat.battleIntro";
  */
 const INTRO_DURATION_MS = 3500;
 
+/**
+ * Short edge of the VS card, as a fraction of its height (the 150:400 ratio
+ * of the portrait artwork).
+ */
+const CARD_RATIO = 0.375;
+
+/**
+ * Slant of the VS card, in degrees.
+ *
+ * The card is a rectangle sheared sideways, so its corners are
+ * `90° ± SLANT_DEG` — 70° and 110° with the current value. The players' cards
+ * lean to the left and the rivals' to the right, which draws the classic "VS"
+ * cross: every card points at the corner of the screen its side owns.
+ */
+const SLANT_DEG = 20;
+
+/** How many portraits are laid out in a single row on each side. */
+const PORTRAITS_PER_ROW = 5;
+
 interface KindOption {
   value: EncounterKind;
   label: string;
@@ -146,18 +165,25 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
   /**
    * Frame height (in px) sized so at least `PORTRAITS_PER_ROW` portraits fit
    * in a single row on each side, while keeping the 150:400 ratio (0.375) and
-   * never overflowing the screen height. Written as the `--phc-vs-h` CSS
-   * custom property; a plain pixel number avoids any `min()`/`calc()`/unit
-   * resolution trouble inside Foundry's stylesheet.
+   * never overflowing the screen height.
+   *
+   * The card is a rectangle sheared by `SLANT_DEG`, so its bounding box is
+   * wider than the card: a row is `PORTRAITS_PER_ROW` cards wide plus ONE
+   * slant overhang (only the last card pays for it), hence the division by
+   * `PORTRAITS_PER_ROW`.
+   *
+   * The values are written as plain pixels on the `.phc-vs` element, whose
+   * inline styles beat the stylesheet's fallbacks, and avoid any
+   * `min()`/`calc()`/unit resolution trouble inside Foundry's stylesheet.
    */
   #fitFrames(): void {
     try {
-      const el = this.element as HTMLElement | null;
-      if (!el) return;
+      const root = this.element as HTMLElement | null;
+      if (!root) return;
+      const el = (root.querySelector(".phc-vs") as HTMLElement | null) ?? root;
       const vw = window.innerWidth || document.documentElement.clientWidth || 1280;
       const vh = window.innerHeight || document.documentElement.clientHeight || 720;
-      const ratio = 0.375; // 150:400
-      const perRow = 5;
+      const perRow = PORTRAITS_PER_ROW;
       // Roughly what each side gets: half the width, minus the middle spacer,
       // page padding and the gaps required by one row of frames.
       const gutter = Math.max(4, Math.min(14, vw * 0.009));
@@ -165,12 +191,22 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
       const middle = Math.max(70, Math.min(170, vw * 0.09));
       const padding = Math.max(16, vh * 0.036);
       const sideWidth = (vw - middle - padding) / 2;
+      // Horizontal offset of the slant (h * tan 20°) and the share of the row
+      // each portrait takes: the card itself plus the overhang of the last one.
+      const slant = Math.tan((SLANT_DEG * Math.PI) / 180);
+      const ratio = CARD_RATIO + slant / perRow;
       const byWidth = (sideWidth - gapTotal) / perRow / ratio;
       // Never taller than ~68% of the viewport (leaves room for the picker,
       // the team name and the hint), and never absurdly small.
       const byHeight = vh * 0.68;
-      const h = Math.max(120, Math.min(byWidth, byHeight));
-      el.style.setProperty("--phc-vs-h", `${Math.floor(h)}px`);
+      const px = Math.floor(Math.max(120, Math.min(byWidth, byHeight)));
+      el.style.setProperty("--phc-vs-h", `${px}px`);
+      el.style.setProperty("--phc-vs-skew", `${(px * slant).toFixed(2)}px`);
+      // The card's short edge as a percentage of its bounding box.
+      el.style.setProperty(
+        "--phc-vs-top",
+        `${((CARD_RATIO / (CARD_RATIO + slant)) * 100).toFixed(4)}%`
+      );
     } catch (err) {
       this.#handleError("fitFrames", err);
     }
