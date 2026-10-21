@@ -133,17 +133,35 @@ function toTemplateGroups(view: CombatView): TemplateGroup[] {
   });
 }
 
-/** Players only see the dice button on combatants they are allowed to update. */
+/** Players can roll initiative for combatants they own/control. */
 function canUserRoll(combatantId: string): boolean {
   try {
     const combatant = Array.from(game.combat?.combatants ?? []).find((c) => c.id === combatantId);
     if (!combatant) return false;
     if (game.user?.isGM) return true;
+    const actor = (combatant as { actor?: Actor | null }).actor;
+    if (actor?.isOwner) return true;
+    try {
+      if (typeof actor?.testUserPermission === "function") {
+        if (actor.testUserPermission(game.user, "OWNER")) return true;
+      }
+    } catch {
+      /* ignore */
+    }
     const canModify = (combatant as { canUserModify?: (user: User, action: string) => boolean })
       .canUserModify;
-    return typeof canModify === "function" ? canModify.call(combatant, game.user, "update") : true;
+    if (typeof canModify === "function") {
+      try {
+        if (canModify.call(combatant, game.user, "update")) return true;
+      } catch {
+        /* ignore */
+      }
+    }
+    // Also allow if the user owns the actor via game.user.character
+    if (game.user?.character && actor && game.user.character.id === actor.id) return true;
+    return false;
   } catch {
-    return true;
+    return false;
   }
 }
 
@@ -170,7 +188,7 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
     foundry.applications.api.HandlebarsApplicationMixin.HandlebarsTemplatePart
   > = {
     bar: {
-      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.3.6.hbs`,
+      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.3.7.hbs`,
       id: `${MODULE_ID}-bar`,
       root: true
     }

@@ -162,6 +162,7 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
     this.#kind = config.kind;
     this.#encounterName = config.encounterName ?? "";
     this.#playerTeam = config.playerTeam ?? "";
+    this.#clearTimer();
     void this.render({ force: true });
   }
 
@@ -389,7 +390,8 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
     this.#clearTimer();
     // The setup screen waits for the GM: it must not time out on its own.
     if (this.#phase !== "presentation") return;
-    const root = this.element?.querySelector<HTMLElement>(".phc-vs") ?? this.element;
+    if (!this.rendered || !this.element) return;
+    const root = this.element.querySelector<HTMLElement>(".phc-vs") ?? this.element;
     const duration = Number(root?.dataset?.duration ?? 0);
     const wait = Number.isFinite(duration) && duration > 0 ? duration : 0;
     if (wait <= 0) return;
