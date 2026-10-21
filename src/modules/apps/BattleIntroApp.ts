@@ -32,20 +32,23 @@ const KEYS = "pokemon-hud-combat.battleIntro";
 const INTRO_DURATION_MS = 3500;
 
 /**
- * Short edge of the VS card, as a fraction of its height (the 150:400 ratio
- * of the portrait artwork).
+ * Short edge of the VS card, as a fraction of its height.
+ *
+ * The portrait artwork is 150:400, but the card is a bit fatter than that:
+ * a narrow card crops the artwork too much, so the slanted shape reads as a
+ * thin blade instead of a portrait.
  */
-const CARD_RATIO = 0.375;
+const CARD_RATIO = 0.46;
 
 /**
  * Slant of the VS card, in degrees.
  *
  * The card is a rectangle sheared sideways, so its corners are
- * `90° ± SLANT_DEG` — 70° and 110° with the current value. The players' cards
+ * `90° ± SLANT_DEG` — 65° and 115° with the current value. The players' cards
  * lean to the left and the rivals' to the right, which draws the classic "VS"
  * cross: every card points at the corner of the screen its side owns.
  */
-const SLANT_DEG = 20;
+const SLANT_DEG = 25;
 
 /** How many portraits are laid out in a single row on each side. */
 const PORTRAITS_PER_ROW = 5;
@@ -185,11 +188,13 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
       const vh = window.innerHeight || document.documentElement.clientHeight || 720;
       const perRow = PORTRAITS_PER_ROW;
       // Roughly what each side gets: half the width, minus the middle spacer,
-      // page padding and the gaps required by one row of frames.
+      // page padding and the gaps required by one row of frames. The middle
+      // spacer is kept tight: the cards may come close to the "VS" badge,
+      // they just have to stay on the screen.
       const gutter = Math.max(4, Math.min(14, vw * 0.009));
       const gapTotal = gutter * (perRow - 1);
-      const middle = Math.max(70, Math.min(170, vw * 0.09));
-      const padding = Math.max(16, vh * 0.036);
+      const middle = Math.max(56, Math.min(110, vw * 0.055));
+      const padding = Math.max(12, vh * 0.022);
       const sideWidth = (vw - middle - padding) / 2;
       // Horizontal offset of the slant (h * tan 20°) and the share of the row
       // each portrait takes: the card itself plus the overhang of the last one.

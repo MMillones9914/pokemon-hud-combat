@@ -519,11 +519,11 @@ button.phc-token {
 .phc-vs {
   /* Fallbacks: the app overwrites them with plain pixels on every render
      (see `BattleIntroApp#fitFrames`), which also beats this stylesheet.
-     `--phc-vs-skew` is the horizontal offset of the 20° slant (h * tan 20°)
+     `--phc-vs-skew` is the horizontal offset of the 25° slant (h * tan 25°)
      and `--phc-vs-top` the card's short edge as a % of its bounding box. */
-  --phc-vs-h: min(17vw, 56vh);
-  --phc-vs-skew: calc(var(--phc-vs-h) * 0.36397);
-  --phc-vs-top: 50.7413%;
+  --phc-vs-h: min(15.5vw, 56vh);
+  --phc-vs-skew: calc(var(--phc-vs-h) * 0.46631);
+  --phc-vs-top: 49.6543%;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -533,7 +533,7 @@ button.phc-token {
   box-sizing: border-box;
   max-width: 100vw;
   max-height: 100vh;
-  padding: clamp(8px, 1.8vh, 22px);
+  padding: clamp(6px, 1.2vh, 14px);
   color: #ffffff;
   background: transparent;
   cursor: pointer;
@@ -724,14 +724,15 @@ button.phc-token {
   z-index: 1;
 }
 
-/* Middle spacer that keeps room for the VS badge between both sides. */
+/* Middle spacer that keeps room for the VS badge between both sides. It is
+   deliberately tight: the cards are allowed to come close to the badge. */
 .phc-vs__middle {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  width: clamp(70px, 9vw, 170px);
+  width: clamp(56px, 5.5vw, 110px);
   z-index: 2;
 }
 
@@ -828,7 +829,7 @@ button.phc-token {
   content: "";
   position: absolute;
   inset: -4px;
-  clip-path: var(--phc-vs-shape, polygon(0% 0%, 50.7413% 0%, 100% 100%, 49.2587% 100%));
+  clip-path: var(--phc-vs-shape, polygon(0% 0%, 49.6543% 0%, 100% 100%, 50.3457% 100%));
   background: var(--phc-vs-rim, #e8c76a);
   opacity: 0.95;
 }
@@ -838,7 +839,7 @@ button.phc-token {
   content: "";
   position: absolute;
   inset: 0;
-  clip-path: var(--phc-vs-shape, polygon(0% 0%, 50.7413% 0%, 100% 100%, 49.2587% 100%));
+  clip-path: var(--phc-vs-shape, polygon(0% 0%, 49.6543% 0%, 100% 100%, 50.3457% 100%));
   background: rgba(6, 6, 6, 0.8);
 }
 
@@ -882,7 +883,7 @@ button.phc-token {
   object-fit: cover !important;
   object-position: center !important;
   background: transparent !important;
-  clip-path: var(--phc-vs-shape, polygon(0% 0%, 50.7413% 0%, 100% 100%, 49.2587% 100%));
+  clip-path: var(--phc-vs-shape, polygon(0% 0%, 49.6543% 0%, 100% 100%, 50.3457% 100%));
 }
 
 /* Team name, centered under the full row of its side. */
