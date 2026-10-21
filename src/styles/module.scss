@@ -747,8 +747,9 @@ button.phc-token {
    defeat Foundry's global list/image rules.
 
    The actor is only a layout box now: the visible shape is the vertical
-   rhombus drawn by `.phc-vs__frame` (a diamond clipped out of the box), so
-   the frame itself must not draw a rectangular border nor clip its child. */
+   rhomboid drawn by `.phc-vs__frame` (a sheared rectangle clipped out of the
+   box), so the frame itself must not draw a rectangular border nor clip its
+   child. */
 [id="pokemon-hud-combat.battle-intro"] .phc-vs__actor {
   box-sizing: border-box !important;
   display: block !important;
@@ -767,10 +768,23 @@ button.phc-token {
   list-style: none !important;
 }
 
-/* The rhombus itself: a tall diamond (pointy top and bottom) tilted towards
-   its own side of the VS bar. The tilt keeps every vertex inside the layout
-   box, so the row never overlaps itself. */
+/* The rhomboid itself: a tall PARALLELOGRAM — a rectangle sheared sideways
+   (opposite sides parallel and equal, adjacent sides unequal) — plus a few
+   degrees of tilt towards its own side of the VS bar.
+
+   The outline lives in `--phc-vs-shape` (a `polygon()`) so the art, the dark
+   fill and the rim share exactly the same silhouette; each side only
+   mirrors the polygon. The frame itself is never clipped (that would cut
+   the rim) and the tilt keeps every corner inside the row's gap, so
+   neighbouring portraits never overlap. */
 [id="pokemon-hud-combat.battle-intro"] .phc-vs__frame {
+  --phc-vs-skew: 24%;
+  --phc-vs-shape: polygon(
+    0% 0%,
+    calc(100% - var(--phc-vs-skew)) 0%,
+    100% 100%,
+    var(--phc-vs-skew) 100%
+  );
   position: relative;
   box-sizing: border-box !important;
   display: block !important;
@@ -788,12 +802,12 @@ button.phc-token {
   transform-origin: 50% 50%;
 }
 
-/* Coloured rim of the diamond, drawn 4px outside the art. */
+/* Coloured rim of the rhomboid, drawn 4px outside the art. */
 [id="pokemon-hud-combat.battle-intro"] .phc-vs__frame::before {
   content: "";
   position: absolute;
   inset: -4px;
-  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  clip-path: var(--phc-vs-shape, polygon(0% 0%, 76% 0%, 100% 100%, 24% 100%));
   background: var(--phc-vs-rim, #e8c76a);
   opacity: 0.95;
 }
@@ -803,23 +817,40 @@ button.phc-token {
   content: "";
   position: absolute;
   inset: 0;
-  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  clip-path: var(--phc-vs-shape, polygon(0% 0%, 76% 0%, 100% 100%, 24% 100%));
   background: rgba(6, 6, 6, 0.8);
 }
 
-.phc-vs__side--players .phc-vs__frame {
-  --phc-vs-tilt: -9deg;
+/* Players lean to the left (the top edge is shifted left), rivals mirror
+   them and lean to the right: each rhomboid points at its own side.
+   The `[id=...]` prefix keeps these overrides above the frame's defaults. */
+[id="pokemon-hud-combat.battle-intro"] .phc-vs__side--players .phc-vs__frame {
+  --phc-vs-tilt: -5deg;
+  --phc-vs-skew: 24%;
+  --phc-vs-shape: polygon(
+    0% 0%,
+    calc(100% - var(--phc-vs-skew)) 0%,
+    100% 100%,
+    var(--phc-vs-skew) 100%
+  );
   --phc-vs-rim: rgba(74, 222, 128, 0.95);
   filter: drop-shadow(0 0 8px rgba(74, 222, 128, 0.45));
 }
 
-.phc-vs__side--rivals .phc-vs__frame {
-  --phc-vs-tilt: 9deg;
+[id="pokemon-hud-combat.battle-intro"] .phc-vs__side--rivals .phc-vs__frame {
+  --phc-vs-tilt: 5deg;
+  --phc-vs-skew: 24%;
+  --phc-vs-shape: polygon(
+    var(--phc-vs-skew) 0%,
+    100% 0%,
+    calc(100% - var(--phc-vs-skew)) 100%,
+    0% 100%
+  );
   --phc-vs-rim: rgba(248, 113, 113, 0.95);
   filter: drop-shadow(0 0 8px rgba(248, 113, 113, 0.5));
 }
 
-/* The art fills the diamond exactly and is cropped, never shown at its own
+/* The art fills the rhomboid exactly and is cropped, never shown at its own
    size: every box dimension is pinned to 100% of the frame. */
 [id="pokemon-hud-combat.battle-intro"] .phc-vs__img {
   position: relative;
@@ -839,7 +870,7 @@ button.phc-token {
   object-fit: cover !important;
   object-position: center !important;
   background: transparent !important;
-  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  clip-path: var(--phc-vs-shape, polygon(0% 0%, 76% 0%, 100% 100%, 24% 100%));
 }
 
 /* Team name, centered under the full row of its side. */
