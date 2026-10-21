@@ -521,9 +521,9 @@ button.phc-token {
      (see `BattleIntroApp#fitFrames`), which also beats this stylesheet.
      `--phc-vs-skew` is the horizontal offset of the 25° slant (h * tan 25°)
      and `--phc-vs-top` the card's short edge as a % of its bounding box. */
-  --phc-vs-h: min(15.5vw, 56vh);
+  --phc-vs-h: min(13vw, 56vh);
   --phc-vs-skew: calc(var(--phc-vs-h) * 0.46631);
-  --phc-vs-top: 49.6543%;
+  --phc-vs-top: 54.5605%;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -533,7 +533,7 @@ button.phc-token {
   box-sizing: border-box;
   max-width: 100vw;
   max-height: 100vh;
-  padding: clamp(6px, 1.2vh, 14px);
+  padding: clamp(4px, 0.8vh, 10px);
   color: #ffffff;
   background: transparent;
   cursor: pointer;
@@ -744,8 +744,8 @@ button.phc-token {
    between two cards (`--phc-vs-gap`). The cards are pulled back by the slant
    (see `.phc-vs__actor`), so the gap here is only a fallback. */
 .phc-vs__list {
-  --phc-vs-gap: clamp(4px, 0.9vw, 14px);
-  --phc-vs-card-w: calc(var(--phc-vs-h) * 0.375);
+  --phc-vs-gap: clamp(4px, 0.7vw, 10px);
+  --phc-vs-card-w: calc(var(--phc-vs-h) * 0.56);
   --phc-vs-box-w: calc(var(--phc-vs-card-w) + var(--phc-vs-skew));
   display: flex;
   flex-wrap: nowrap;
@@ -757,10 +757,10 @@ button.phc-token {
   list-style: none;
 }
 
-/* Portrait frames. `--phc-vs-h` is set in px by the app; the card keeps the
-   150:400 ratio (0.375) and is sheared by `SLANT_DEG` (20°), so its corners
-   are 70°/110°. High specificity + `!important` + explicit min/max defeat
-   Foundry's global list/image rules.
+/* Portrait frames. `--phc-vs-h` is set in px by the app; the card keeps its own
+   ratio (`CARD_RATIO`, 0.56 — wide enough for a vertical portrait) and is
+   sheared by `SLANT_DEG` (25°), so its corners are 65°/115°. High specificity
+   + `!important` + explicit min/max defeat Foundry's global list/image rules.
 
    The actor is only a layout box: the visible shape is the vertical rhomboid
    drawn by `.phc-vs__frame` (a sheared rectangle clipped out of the box), so
@@ -793,7 +793,7 @@ button.phc-token {
 
 /* The rhomboid itself: a tall PARALLELOGRAM — a rectangle sheared sideways
    (opposite sides parallel and equal, adjacent sides unequal). The slant is
-   20°, so the corners are 70° and 110°.
+   25°, so the corners are 65° and 115°.
 
    The outline lives in `--phc-vs-shape` (a `polygon()`) so the art, the dark
    fill and the rim share exactly the same silhouette; each side only mirrors
@@ -829,7 +829,7 @@ button.phc-token {
   content: "";
   position: absolute;
   inset: -4px;
-  clip-path: var(--phc-vs-shape, polygon(0% 0%, 49.6543% 0%, 100% 100%, 50.3457% 100%));
+  clip-path: var(--phc-vs-shape, polygon(0% 0%, 54.5605% 0%, 100% 100%, 45.4395% 100%));
   background: var(--phc-vs-rim, #e8c76a);
   opacity: 0.95;
 }
@@ -839,7 +839,7 @@ button.phc-token {
   content: "";
   position: absolute;
   inset: 0;
-  clip-path: var(--phc-vs-shape, polygon(0% 0%, 49.6543% 0%, 100% 100%, 50.3457% 100%));
+  clip-path: var(--phc-vs-shape, polygon(0% 0%, 54.5605% 0%, 100% 100%, 45.4395% 100%));
   background: rgba(6, 6, 6, 0.8);
 }
 
@@ -864,7 +864,12 @@ button.phc-token {
 }
 
 /* The art fills the rhomboid exactly and is cropped, never shown at its own
-   size: every box dimension is pinned to 100% of the frame. */
+   size: every box dimension is pinned to 100% of the frame.
+
+   The crop is biased towards the TOP (`object-position: center 20%`): the
+   artwork is a vertical portrait, so `cover` crops it vertically and the
+   face — which lives in the upper third — would fall out of the frame with a
+   centred crop. */
 [id="pokemon-hud-combat.battle-intro"] .phc-vs__img {
   position: relative;
   z-index: 1;
@@ -881,9 +886,9 @@ button.phc-token {
   border: none !important;
   border-radius: 0 !important;
   object-fit: cover !important;
-  object-position: center !important;
+  object-position: center 20% !important;
   background: transparent !important;
-  clip-path: var(--phc-vs-shape, polygon(0% 0%, 49.6543% 0%, 100% 100%, 50.3457% 100%));
+  clip-path: var(--phc-vs-shape, polygon(0% 0%, 54.5605% 0%, 100% 100%, 45.4395% 100%));
 }
 
 /* Team name, centered under the full row of its side. */

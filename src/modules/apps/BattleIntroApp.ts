@@ -34,11 +34,11 @@ const INTRO_DURATION_MS = 3500;
 /**
  * Short edge of the VS card, as a fraction of its height.
  *
- * The portrait artwork is 150:400, but the card is a bit fatter than that:
- * a narrow card crops the artwork too much, so the slanted shape reads as a
- * thin blade instead of a portrait.
+ * The portrait artwork is a vertical rectangle, so the card has to be wide
+ * enough for it: a narrow card crops the artwork into a thin blade and the
+ * character is barely recognisable.
  */
-const CARD_RATIO = 0.46;
+const CARD_RATIO = 0.56;
 
 /**
  * Slant of the VS card, in degrees.
@@ -167,8 +167,8 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
 
   /**
    * Frame height (in px) sized so at least `PORTRAITS_PER_ROW` portraits fit
-   * in a single row on each side, while keeping the 150:400 ratio (0.375) and
-   * never overflowing the screen height.
+   * in a single row on each side, while keeping the card's own ratio
+   * (`CARD_RATIO`) and never overflowing the screen height.
    *
    * The card is a rectangle sheared by `SLANT_DEG`, so its bounding box is
    * wider than the card: a row is `PORTRAITS_PER_ROW` cards wide plus ONE
@@ -191,12 +191,12 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
       // page padding and the gaps required by one row of frames. The middle
       // spacer is kept tight: the cards may come close to the "VS" badge,
       // they just have to stay on the screen.
-      const gutter = Math.max(4, Math.min(14, vw * 0.009));
+      const gutter = Math.max(4, Math.min(10, vw * 0.007));
       const gapTotal = gutter * (perRow - 1);
       const middle = Math.max(56, Math.min(110, vw * 0.055));
-      const padding = Math.max(12, vh * 0.022);
+      const padding = Math.max(8, vh * 0.016);
       const sideWidth = (vw - middle - padding) / 2;
-      // Horizontal offset of the slant (h * tan 20°) and the share of the row
+      // Horizontal offset of the slant (h * tan 25°) and the share of the row
       // each portrait takes: the card itself plus the overhang of the last one.
       const slant = Math.tan((SLANT_DEG * Math.PI) / 180);
       const ratio = CARD_RATIO + slant / perRow;

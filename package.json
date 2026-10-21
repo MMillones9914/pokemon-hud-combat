@@ -1,6 +1,6 @@
 {
   "name": "pokemon-hud-combat",
-  "version": "0.3.12",
+  "version": "0.3.13",
   "description": "Pok\u00e9mon-style combat tracker HUD for Foundry VTT v14",
   "type": "module",
   "private": true,
