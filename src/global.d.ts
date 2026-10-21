@@ -16,8 +16,16 @@ declare global {
     "pokemon-hud-combat.battleIntro": boolean;
     "pokemon-hud-combat.battleIntroDuration": number;
     "pokemon-hud-combat.playerTeamName": string;
-    "pokemon-hud-combat.rivalTeams": string;
     "core.uiConfig": foundry.applications.settings.menus.UIConfig.GameUIConfiguration;
+  }
+
+  /** Flags this module stores on the Combat document. */
+  interface FlagConfig {
+    Combat: {
+      "pokemon-hud-combat": {
+        battleIntro: import("./modules/core/battle-intro").BattleIntroConfig;
+      };
+    };
   }
 
   interface ModuleConfig {

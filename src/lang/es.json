@@ -65,10 +65,6 @@
         "name": "Nombre del equipo de los jugadores",
         "hint": "Se muestra bajo los retratos de los jugadores en la pantalla VS."
       },
-      "rivalTeams": {
-        "name": "Nombres de equipos rivales",
-        "hint": "Un equipo rival por línea. El DJ elige cuál se muestra al aparecer la pantalla VS."
-      }
     },
     "encounter": {
       "trainers": "Encuentro contra entrenadores",
@@ -81,8 +77,11 @@
     "battleIntro": {
       "title": "Combate",
       "encounterKind": "Tipo de encuentro",
+      "encounterName": "Nombre del encuentro",
+      "encounterNamePlaceholder": "Escribe el nombre del encuentro...",
       "rivalTeam": "Equipo rival",
       "start": "Comenzar combate",
+      "skip": "Omitir",
       "skipHint": "Haz clic o pulsa cualquier tecla para saltar",
       "soon": "próximamente"
     },

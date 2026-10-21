@@ -1,5 +1,11 @@
 import type { DeepPartial } from "fvtt-types/utils";
-import { buildBattleIntroView } from "../core/battle-intro";
+import {
+  buildBattleIntroView,
+  readBattleIntroConfig,
+  writeBattleIntroConfig,
+  type BattleIntroConfig,
+  type BattleIntroEntry
+} from "../core/battle-intro";
 import {
   encounterLabelKey,
   ENCOUNTER_KINDS,
@@ -21,23 +27,18 @@ interface KindOption {
   selected: boolean;
 }
 
-interface TeamOption {
-  label: string;
-  selected: boolean;
-}
-
 interface BattleIntroContext
   extends
     foundry.applications.api.HandlebarsApplicationMixin.RenderContext,
     foundry.applications.api.ApplicationV2.RenderContext {
   isGM: boolean;
-  showPicker: boolean;
+  /** True while the GM is still choosing: only the GM ever sees this. */
+  setup: boolean;
   kinds: KindOption[];
-  players: Array<{ id: string; name: string; img: string }>;
-  rivals: Array<{ id: string; name: string; img: string }>;
+  players: BattleIntroEntry[];
+  rivals: BattleIntroEntry[];
   playerTeam: string;
-  rivalTeam: string;
-  rivalTeams: TeamOption[];
+  encounterName: string;
   durationMs: number;
 }
 
@@ -63,12 +64,15 @@ function localize(key: string, data?: Record<string, unknown>): string {
 /**
  * Full-screen "VS" battle intro (ApplicationV2).
  *
- * - Right/left sides come from the current combat (player trainers vs. rivals).
- * - Shown to every client at once when a combat is created.
- * - The GM picks the encounter kind and the rival team right on the screen;
- *   the picker is a no-op for players (they only see the result).
- * - Auto-closes after the configured number of seconds, and can be skipped with
- *   a click or any key press.
+ * Two phases:
+ *
+ * - **setup** (GM only): the GM sees the portraits, picks the encounter kind
+ *   and types the encounter name in the text bar on the rival side. Players see
+ *   nothing at all — the tracker stays hidden until the GM is done.
+ * - **presentation** (everybody): once the GM presses "Comenzar combate" the
+ *   choice is stored on the Combat document and the portraits + names are shown
+ *   to everyone. It auto-closes after the configured number of seconds and can
+ *   be skipped with a click or any key press.
  */
 export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicationMixin(
   foundry.applications.api.ApplicationV2
@@ -99,13 +103,19 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
     }
   };
 
+  #phase: "setup" | "presentation" = "setup";
   #kind: EncounterKind = "trainers";
-  #rivalTeam: string | null = null;
-  #confirmed = false;
+  #encounterName = "";
+  /** `null` while the GM has not confirmed: the live world setting is used. */
+  #playerTeam: string | null = null;
   #timer: ReturnType<typeof setTimeout> | null = null;
   #onKeyBound?: (event: KeyboardEvent) => void;
   #onClickBound?: (event: Event) => void;
+  #onInputBound?: (event: Event) => void;
   #onResizeBound?: () => void;
+  /** Focus state of the name bar, kept across re-renders. */
+  #focusName = false;
+  #caret = 0;
 
   /**
    * Frame height (in px) sized so at least `PORTRAITS_PER_ROW` portraits fit
@@ -140,29 +150,49 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
     }
   }
 
+  /** Open the GM setup screen (encounter kind + name bar). */
+  openSetup(): void {
+    this.#phase = "setup";
+    void this.render({ force: true });
+  }
+
+  /** Switch to the final presentation, shared by every client. */
+  present(config: BattleIntroConfig): void {
+    this.#phase = "presentation";
+    this.#kind = config.kind;
+    this.#encounterName = config.encounterName ?? "";
+    this.#playerTeam = config.playerTeam ?? "";
+    void this.render({ force: true });
+  }
+
   override async _prepareContext(
     _options: DeepPartial<BattleIntroRenderOptions> & { isFirstRender?: boolean }
   ): Promise<BattleIntroContext> {
-    const view = buildBattleIntroView(this.#rivalTeam);
     const isGM = game.user?.isGM === true;
-    const rivalNames = view.rivalTeams;
+    const setup = this.#phase === "setup" && isGM;
+    // Remember where the caret was so the name bar survives a re-render.
+    const active = document.activeElement as HTMLInputElement | null;
+    this.#focusName =
+      setup && !!active && active.dataset?.action === "pick-name" && !!this.element?.contains(active);
+    this.#caret = this.#focusName ? (active?.selectionStart ?? 0) : 0;
+    const playerTeam = this.#playerTeam ?? (getSettings().playerTeamName ?? "").trim();
+    const view = buildBattleIntroView({
+      encounterName: this.#encounterName,
+      playerTeam
+    });
     return {
       isGM,
-      showPicker: isGM && !this.#confirmed,
+      setup,
       kinds: ENCOUNTER_KINDS.map((value) => ({
         value,
         label: localize(encounterLabelKey(value)),
         implemented: isEncounterImplemented(value),
         selected: value === this.#kind
       })),
-      players: view.players.map((p) => ({ id: p.id, name: p.name, img: p.img })),
-      rivals: view.rivals.map((r) => ({ id: r.id, name: r.name, img: r.img })),
+      players: view.players,
+      rivals: view.rivals,
       playerTeam: view.playerTeam,
-      rivalTeam: view.rivalTeam,
-      rivalTeams: rivalNames.map((team) => ({
-        label: team,
-        selected: team === view.rivalTeam
-      })),
+      encounterName: view.encounterName,
       durationMs: view.durationMs
     };
   }
@@ -179,8 +209,10 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
     try {
       this.#onClickBound = (event: Event) => void this.#onClick(event);
       this.#onKeyBound = (event: KeyboardEvent) => this.#onKey(event);
+      this.#onInputBound = (event: Event) => void this.#onInput(event);
       this.#onResizeBound = () => this.#fitFrames();
       this.element.addEventListener("click", this.#onClickBound);
+      this.element.addEventListener("input", this.#onInputBound);
       window.addEventListener("keydown", this.#onKeyBound);
       window.addEventListener("resize", this.#onResizeBound);
       // Keep the combat bar out of sight while the VS screen is up.
@@ -202,6 +234,7 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
       this.#handleError("_onRender", err);
     }
     this.#fitFrames();
+    this.#restoreNameFocus();
     this.#scheduleAutoClose();
   }
 
@@ -209,6 +242,7 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
     this.#clearTimer();
     try {
       if (this.#onClickBound) this.element.removeEventListener("click", this.#onClickBound);
+      if (this.#onInputBound) this.element.removeEventListener("input", this.#onInputBound);
       if (this.#onKeyBound) window.removeEventListener("keydown", this.#onKeyBound);
       if (this.#onResizeBound) window.removeEventListener("resize", this.#onResizeBound);
     } catch {
@@ -230,10 +264,69 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
     this.#kind = kind;
   }
 
-  /** GM picks which rival team is shown on the right side. */
-  #onPickTeam(select: HTMLSelectElement): void {
-    this.#rivalTeam = select.value || null;
-    void this.render({ force: true });
+  /** The GM types the encounter name; the value is kept without re-rendering. */
+  #onInput(event: Event): void {
+    const target = event.target as HTMLInputElement | null;
+    if (!target || target.dataset?.action !== "pick-name") return;
+    this.#encounterName = target.value ?? "";
+  }
+
+  /** Current content of the name bar (the live input wins over the cached one). */
+  #readName(): string {
+    const input = this.element?.querySelector<HTMLInputElement>('[data-action="pick-name"]');
+    const value = typeof input?.value === "string" ? input.value : this.#encounterName;
+    return value.trim();
+  }
+
+  /** Restore the caret in the name bar after a re-render. */
+  #restoreNameFocus(): void {
+    if (!this.#focusName) return;
+    const input = this.element?.querySelector<HTMLInputElement>('[data-action="pick-name"]');
+    if (!input) return;
+    input.focus();
+    const pos = Math.min(this.#caret, input.value.length);
+    try {
+      input.setSelectionRange(pos, pos);
+    } catch {
+      /* input without selection support */
+    }
+  }
+
+  /** The GM confirms the encounter: everybody plays the intro. */
+  async #onStart(): Promise<void> {
+    try {
+      const combat = game.combat ?? null;
+      const config: BattleIntroConfig = {
+        kind: this.#kind,
+        encounterName: this.#readName(),
+        playerTeam: this.#playerTeam ?? (getSettings().playerTeamName ?? "").trim(),
+        state: "confirmed",
+        startedAt: Date.now()
+      };
+      // Show it here and now; the flag write tells the other clients.
+      presentBattleIntro(combat?.id ?? null, config);
+      await writeBattleIntroConfig(combat, config);
+    } catch (err) {
+      this.#handleError("start", err);
+    }
+  }
+
+  /** The GM skips the intro: nobody sees it and the tracker comes back. */
+  async #onSkip(): Promise<void> {
+    try {
+      const combat = game.combat ?? null;
+      const config: BattleIntroConfig = {
+        kind: this.#kind,
+        encounterName: this.#readName(),
+        playerTeam: this.#playerTeam ?? (getSettings().playerTeamName ?? "").trim(),
+        state: "cancelled",
+        startedAt: Date.now()
+      };
+      cancelBattleIntro();
+      await writeBattleIntroConfig(combat, config);
+    } catch (err) {
+      this.#handleError("skip", err);
+    }
   }
 
   async #onClick(event: Event): Promise<void> {
@@ -244,17 +337,18 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
       this.#onPickKind(control);
       return;
     }
-    if (action === "pick-team" && control instanceof HTMLSelectElement) {
-      this.#onPickTeam(control);
+    if (action === "pick-name") return;
+    if (action === "start") {
+      await this.#onStart();
       return;
     }
-    if (action === "start") {
-      // Confirmed: drop the GM picker so only the portraits remain on screen.
-      this.#confirmed = true;
-      void this.render({ force: true });
+    if (action === "skip") {
+      await this.#onSkip();
       return;
     }
     if (action === "noop") return;
+    // While the GM is configuring, only the explicit buttons act.
+    if (this.#phase === "setup") return;
     // Clicking the backdrop (or any non-control surface) skips the intro.
     this.#closeNow();
   }
@@ -264,12 +358,11 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
    * when combatants arrive after the Combat document itself, which is the
    * normal order on player clients (so they get the portraits too).
    *
-   * Skipped while the GM is still choosing, so an open dropdown is never
-   * re-rendered out from under them; the GM's view refreshes on confirmation.
+   * While the GM is choosing, the re-render keeps the name bar focused and the
+   * caret in place, so typing is never interrupted.
    */
   refreshView(): void {
     if (!this.rendered) return;
-    if (!this.#confirmed && game.user?.isGM === true) return;
     try {
       void this.render();
     } catch (err) {
@@ -278,6 +371,8 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
   }
 
   #onKey(event: KeyboardEvent): void {
+    // Never close (nor swallow keys) while the GM is filling the name bar.
+    if (this.#phase === "setup") return;
     if (event.key === "Escape" || event.key === "Enter" || event.key === " ") event.preventDefault();
     this.#closeNow();
   }
@@ -289,6 +384,8 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
 
   #scheduleAutoClose(): void {
     this.#clearTimer();
+    // The setup screen waits for the GM: it must not time out on its own.
+    if (this.#phase !== "presentation") return;
     const root = this.element?.querySelector<HTMLElement>(".phc-vs") ?? this.element;
     const duration = Number(root?.dataset?.duration ?? 0);
     const wait = Number.isFinite(duration) && duration > 0 ? duration : 0;
@@ -310,20 +407,60 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
 }
 
 let activeInstance: BattleIntroApp | null = null;
+/** Combat ids whose intro already played, so it never opens twice. */
+const presentedCombatIds = new Set<string>();
 
 /** True while the VS screen is on screen. */
 export function isBattleIntroVisible(): boolean {
   return activeInstance?.rendered === true;
 }
 
-/** Show the VS screen (no-op when the feature is off). */
+/**
+ * Show the setup screen to the GM (no-op when the feature is off).
+ *
+ * Players never get this: they wait for the GM to confirm the encounter.
+ */
 export function showBattleIntro(): void {
   if (!getSettings().battleIntro) return;
   // Suppress the bar immediately (synchronously) so the `createCombat` hook's
   // `syncCombatHud()` right after this can never flash the tracker on screen.
   setCombatHudSuppressed(true);
   if (!activeInstance) activeInstance = new BattleIntroApp();
-  void activeInstance.render({ force: true });
+  activeInstance.openSetup();
+}
+
+/**
+ * Players: the GM has not confirmed the encounter yet, so nothing is shown —
+ * but the tracker stays hidden until the intro is over.
+ */
+export function awaitBattleIntro(): void {
+  if (!getSettings().battleIntro) return;
+  setCombatHudSuppressed(true);
+}
+
+/**
+ * Play the intro for everybody with the encounter the GM confirmed.
+ *
+ * `combatId` guards against replaying the same encounter twice (a re-connect
+ * or any later update of the Combat document).
+ */
+export function presentBattleIntro(combatId: string | null, config: BattleIntroConfig): void {
+  try {
+    if (combatId) {
+      if (presentedCombatIds.has(combatId)) return;
+      presentedCombatIds.add(combatId);
+    }
+    setCombatHudSuppressed(true);
+    if (!activeInstance) activeInstance = new BattleIntroApp();
+    activeInstance.present(config);
+  } catch (err) {
+    logger.error(`presentBattleIntro: ${String(err)}`);
+  }
+}
+
+/** The GM skipped the encounter: close everything and give the tracker back. */
+export function cancelBattleIntro(): void {
+  hideBattleIntro();
 }
 
 export function hideBattleIntro(): void {
@@ -341,6 +478,26 @@ export function hideBattleIntro(): void {
  */
 export function refreshBattleIntro(): void {
   activeInstance?.refreshView();
+}
+
+/**
+ * React to a change of the Combat document: the GM confirmed or cancelled the
+ * encounter and every client has to follow.
+ */
+export function syncBattleIntro(combat: Combat | null | undefined): void {
+  try {
+    if (!getSettings().battleIntro) return;
+    const config = readBattleIntroConfig(combat);
+    if (!config) return;
+    if (config.state === "cancelled") {
+      cancelBattleIntro();
+      return;
+    }
+    if (config.state !== "confirmed") return;
+    presentBattleIntro(combat?.id ?? null, config);
+  } catch (err) {
+    logger.error(`syncBattleIntro: ${String(err)}`);
+  }
 }
 
 export function toggleBattleIntro(): void {

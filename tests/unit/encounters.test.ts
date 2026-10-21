@@ -3,9 +3,7 @@ import {
   encounterLabelKey,
   ENCOUNTER_KINDS,
   isEncounterImplemented,
-  normalizeEncounterKind,
-  parseRivalTeams,
-  resolveRivalTeam
+  normalizeEncounterKind
 } from "../../src/modules/core/encounters";
 
 describe("ENCOUNTER_KINDS", () => {
@@ -43,47 +41,5 @@ describe("normalizeEncounterKind", () => {
     expect(normalizeEncounterKind("nope")).toBe("trainers");
     expect(normalizeEncounterKind(undefined)).toBe("trainers");
     expect(normalizeEncounterKind(42)).toBe("trainers");
-  });
-});
-
-describe("parseRivalTeams", () => {
-  it("splits on newlines and trims each entry", () => {
-    expect(parseRivalTeams("Team Rocket\n  Team Aqua  \nTeam Magma")).toEqual([
-      "Team Rocket",
-      "Team Aqua",
-      "Team Magma"
-    ]);
-  });
-
-  it("drops blank lines and handles CRLF", () => {
-    expect(parseRivalTeams("A\r\n\r\nB\n")).toEqual(["A", "B"]);
-  });
-
-  it("removes duplicates case-insensitively, keeping the first spelling", () => {
-    expect(parseRivalTeams("Team Rocket\nteam rocket\nTEAM ROCKET")).toEqual(["Team Rocket"]);
-  });
-
-  it("returns an empty list for non-strings and blanks", () => {
-    expect(parseRivalTeams(null)).toEqual([]);
-    expect(parseRivalTeams(undefined)).toEqual([]);
-    expect(parseRivalTeams("   \n  ")).toEqual([]);
-  });
-});
-
-describe("resolveRivalTeam", () => {
-  const teams = ["Team Rocket", "Team Aqua"];
-
-  it("picks the preferred team case-insensitively", () => {
-    expect(resolveRivalTeam(teams, "team aqua")).toBe("Team Aqua");
-  });
-
-  it("falls back to the first team when the pick is unknown or empty", () => {
-    expect(resolveRivalTeam(teams, "Team Magma")).toBe("Team Rocket");
-    expect(resolveRivalTeam(teams, "")).toBe("Team Rocket");
-    expect(resolveRivalTeam(teams, null)).toBe("Team Rocket");
-  });
-
-  it("returns an empty string when no teams are configured", () => {
-    expect(resolveRivalTeam([], "Team Rocket")).toBe("");
   });
 });

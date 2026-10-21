@@ -1,24 +1,39 @@
+import { normalizeEncounterKind, type EncounterKind } from "./encounters";
 import { classifyFaction } from "./faction";
-import { parseRivalTeams, resolveRivalTeam } from "./encounters";
+import { isTrainerActor } from "./hud-context";
 import { logger } from "./logger";
 import { getSettings } from "./settings";
 
 const MODULE_ID = "pokemon-hud-combat";
-const HUDDLE_ID = "pokemon-hud-like";
+/** Flag scope/key on the Combat document where the GM's choice is stored. */
+const SCOPE = MODULE_ID;
+const FLAG_KEY = "battleIntro";
 
-type FlagSource = {
-  flags?: Record<string, Record<string, unknown> | undefined>;
-  getFlag?: (scope: string, key: string) => unknown;
-};
+/**
+ * Lifecycle of the VS screen for one combat.
+ *
+ * - `pending`   → the GM has the setup screen open, nobody else sees anything.
+ * - `confirmed` → the GM pressed "Comenzar combate"; everybody plays the intro.
+ * - `cancelled` → the GM skipped it; everybody just goes back to the tracker.
+ */
+export type BattleIntroState = "pending" | "confirmed" | "cancelled";
 
-function readFlag(source: FlagSource | null | undefined, scope: string, key: string): unknown {
-  if (!source) return undefined;
-  try {
-    if (typeof source.getFlag === "function") return source.getFlag(scope, key);
-  } catch {
-    /* fall through to the raw flags object */
-  }
-  return source.flags?.[scope]?.[key];
+/**
+ * The GM's choices for the VS screen.
+ *
+ * Stored as a flag on the Combat document so every client — and any player
+ * joining later — reads the very same encounter from the same source of truth.
+ */
+export interface BattleIntroConfig {
+  /** Encounter kind picked by the GM (only `trainers` has a screen for now). */
+  kind: EncounterKind;
+  /** Free-text name of the encounter, typed by the GM on the VS screen. */
+  encounterName: string;
+  /** Player team name, snapshotted when the GM confirmed the encounter. */
+  playerTeam: string;
+  state: BattleIntroState;
+  /** Epoch milliseconds of the moment the GM confirmed (or cancelled). */
+  startedAt: number;
 }
 
 /** One portrait shown on either side of the VS bar. */
@@ -36,10 +51,8 @@ export interface BattleIntroView {
   rivals: BattleIntroEntry[];
   /** Team name shown under the player portraits. */
   playerTeam: string;
-  /** Team name shown under the rival portraits. */
-  rivalTeam: string;
-  /** Rival teams the GM can pick from (empty when none configured). */
-  rivalTeams: string[];
+  /** Encounter name shown on the rival side of the VS bar. */
+  encounterName: string;
   /** Auto-close delay in milliseconds. */
   durationMs: number;
 }
@@ -52,17 +65,6 @@ function combatantActor(combatant: Combatant): Actor | null {
   } catch {
     return null;
   }
-}
-
-function isTrainerActor(actor: Actor | null | undefined): boolean {
-  if (!actor) return false;
-  const hudType =
-    readFlag(actor as unknown as FlagSource, HUDDLE_ID, "hudType") ??
-    readFlag(actor as unknown as FlagSource, MODULE_ID, "hudType");
-  if (hudType === "trainer") return true;
-  if (hudType === "pokemon") return false;
-  const type = (actor as { type?: string }).type ?? "";
-  return type === "character" || type === "pc";
 }
 
 function combatantDisposition(combatant: Combatant): number | null {
@@ -118,15 +120,67 @@ function actorPortrait(actor: Actor | null, combatant: Combatant): string {
 }
 
 /**
+ * Read the encounter the GM chose for this combat.
+ *
+ * Returns `null` when the GM has not confirmed anything yet (no flag, or a
+ * flag that does not match the expected shape).
+ */
+export function readBattleIntroConfig(
+  combat: Combat | null | undefined
+): BattleIntroConfig | null {
+  if (!combat) return null;
+  let raw: unknown;
+  try {
+    raw = combat.getFlag(SCOPE, FLAG_KEY);
+  } catch (err) {
+    logger.warn(`readBattleIntroConfig: ${String(err)}`);
+    return null;
+  }
+  if (!raw || typeof raw !== "object") return null;
+  const data = raw as Partial<BattleIntroConfig>;
+  const state = data.state;
+  if (state !== "pending" && state !== "confirmed" && state !== "cancelled") return null;
+  return {
+    kind: normalizeEncounterKind(data.kind),
+    encounterName: typeof data.encounterName === "string" ? data.encounterName : "",
+    playerTeam: typeof data.playerTeam === "string" ? data.playerTeam : "",
+    state,
+    startedAt: typeof data.startedAt === "number" ? data.startedAt : 0
+  };
+}
+
+/**
+ * Persist the GM's choice on the Combat document.
+ *
+ * `Document#setFlag` updates the document by itself, so the change travels to
+ * every client through the regular `updateCombat` hook.
+ */
+export async function writeBattleIntroConfig(
+  combat: Combat | null | undefined,
+  config: BattleIntroConfig
+): Promise<boolean> {
+  if (!combat) return false;
+  try {
+    await combat.setFlag(SCOPE, FLAG_KEY, config);
+    return true;
+  } catch (err) {
+    logger.warn(`writeBattleIntroConfig: ${String(err)}`);
+    return false;
+  }
+}
+
+/**
  * Build the VS-screen view from the active combat.
  *
  * Ally trainers (per the viewer's own disposition) form the left side, everyone
  * else forms the right side. Only trainers are shown; wild Pokémon are skipped
  * so the screen stays a trainer showcase.
  */
-export function buildBattleIntroView(preferredRivalTeam?: string | null): BattleIntroView {
+export function buildBattleIntroView(options?: {
+  encounterName?: string | null;
+  playerTeam?: string | null;
+}): BattleIntroView {
   const settings = getSettings();
-  const rivalTeams = parseRivalTeams(settings.rivalTeams);
   const players: BattleIntroEntry[] = [];
   const rivals: BattleIntroEntry[] = [];
   const seen = new Set<string>();
@@ -156,9 +210,8 @@ export function buildBattleIntroView(preferredRivalTeam?: string | null): Battle
   return {
     players,
     rivals,
-    playerTeam: (settings.playerTeamName ?? "").trim(),
-    rivalTeam: resolveRivalTeam(rivalTeams, preferredRivalTeam),
-    rivalTeams,
+    playerTeam: (options?.playerTeam ?? settings.playerTeamName ?? "").trim(),
+    encounterName: (options?.encounterName ?? "").trim(),
     durationMs: Math.max(0, settings.battleIntroDuration) * 1000
   };
 }

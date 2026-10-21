@@ -600,6 +600,52 @@ button.phc-token {
   background: rgba(232, 199, 106, 0.28);
 }
 
+.phc-vs__skip {
+  box-sizing: border-box;
+  height: 28px;
+  padding: 0 14px;
+  border: 1px solid #3a3a3a;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #d8d8d8;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.phc-vs__skip:hover {
+  background: rgba(0, 0, 0, 0.78);
+}
+
+/* Free-text encounter name bar on the rival side (GM setup). */
+.phc-vs__input {
+  box-sizing: border-box;
+  align-self: center;
+  width: min(360px, 90%);
+  max-width: 100%;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid #4a4a4a;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #f87171;
+  font-size: clamp(11px, 1.7vh, 18px);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+  outline: none;
+}
+
+.phc-vs__input::placeholder {
+  color: rgba(248, 113, 113, 0.55);
+  font-weight: 600;
+}
+
+.phc-vs__input:focus {
+  border-color: #f87171;
+  box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.4);
+}
+
 /* Stage: players | VS | rivals. `position: relative` anchors the bar. */
 .phc-vs__stage {
   position: relative;

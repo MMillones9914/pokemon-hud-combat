@@ -13,8 +13,8 @@ export default defineConfig({
     lib: {
       entry: path.resolve(dirname, "src/index.ts"),
       formats: ["es"],
-      fileName: () => "module/pokemon-hud-combat-0.3.4.mjs",
-      cssFileName: "module/pokemon-hud-combat-0.3.4"
+      fileName: () => "module/pokemon-hud-combat-0.3.5.mjs",
+      cssFileName: "module/pokemon-hud-combat-0.3.5"
     },
     rollupOptions: {
       output: {

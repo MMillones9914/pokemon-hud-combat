@@ -66,10 +66,6 @@
         "name": "Player team name",
         "hint": "Shown under the player portraits on the VS screen."
       },
-      "rivalTeams": {
-        "name": "Rival team names",
-        "hint": "One rival team per line. The GM picks which one is shown when the VS screen appears."
-      }
     },
     "encounter": {
       "trainers": "Trainer encounter",
@@ -82,8 +78,11 @@
     "battleIntro": {
       "title": "Battle",
       "encounterKind": "Encounter type",
+      "encounterName": "Encounter name",
+      "encounterNamePlaceholder": "Type the encounter name...",
       "rivalTeam": "Rival team",
       "start": "Start battle",
+      "skip": "Skip",
       "skipHint": "Click or press any key to skip",
       "soon": "coming soon"
     },

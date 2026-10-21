@@ -1,11 +1,15 @@
 {{!--
-  Battle intro (VS) screen. Shown once when a combat is created.
+  Battle intro (VS) screen.
   Left = player trainers, right = rival trainers, a "VS" bar across the middle.
-  The GM first picks the encounter kind (and rival team); once confirmed the
-  picker disappears so only the portraits and the team names remain.
+
+  Two phases:
+  - `setup` (GM only): the GM picks the encounter type and types the encounter
+    name in the bar on the rival side. Players see nothing at all yet.
+  - presentation: once the GM presses "Comenzar combate" everybody sees the
+    portraits and the names, and the screen closes itself after a few seconds.
 --}}
 <section class="phc-vs" data-duration="{{durationMs}}">
-  {{#if showPicker}}
+  {{#if setup}}
   <div class="phc-vs__picker" data-action="noop">
     <label class="phc-vs__field">
       <span class="phc-vs__field-label">{{localize "pokemon-hud-combat.battleIntro.encounterKind"}}</span>
@@ -15,18 +19,11 @@
         {{/each}}
       </select>
     </label>
-    {{#if rivalTeams.length}}
-    <label class="phc-vs__field">
-      <span class="phc-vs__field-label">{{localize "pokemon-hud-combat.battleIntro.rivalTeam"}}</span>
-      <select class="phc-vs__select" data-action="pick-team">
-        {{#each rivalTeams}}
-        <option value="{{this.label}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
-        {{/each}}
-      </select>
-    </label>
-    {{/if}}
     <button type="button" class="phc-vs__start" data-action="start">
       {{localize "pokemon-hud-combat.battleIntro.start"}}
+    </button>
+    <button type="button" class="phc-vs__skip" data-action="skip">
+      {{localize "pokemon-hud-combat.battleIntro.skip"}}
     </button>
   </div>
   {{/if}}
@@ -58,11 +55,26 @@
         </li>
         {{/each}}
       </ul>
-      {{#if rivalTeam}}
-      <div class="phc-vs__team">{{rivalTeam}}</div>
+      {{#if setup}}
+      <input
+        class="phc-vs__input"
+        type="text"
+        data-action="pick-name"
+        value="{{encounterName}}"
+        placeholder="{{localize "pokemon-hud-combat.battleIntro.encounterNamePlaceholder"}}"
+        aria-label="{{localize "pokemon-hud-combat.battleIntro.encounterName"}}"
+        spellcheck="false"
+        autocomplete="off"
+      />
+      {{else}}
+      {{#if encounterName}}
+      <div class="phc-vs__team">{{encounterName}}</div>
+      {{/if}}
       {{/if}}
     </div>
   </div>
 
+  {{#unless setup}}
   <div class="phc-vs__hint">{{localize "pokemon-hud-combat.battleIntro.skipHint"}}</div>
+  {{/unless}}
 </section>

@@ -1,9 +1,11 @@
 import "./styles/module.scss";
 import { registerApi } from "./modules/api";
 import {
+  awaitBattleIntro,
   hideBattleIntro,
   refreshBattleIntro,
-  showBattleIntro
+  showBattleIntro,
+  syncBattleIntro
 } from "./modules/apps/BattleIntroApp";
 import { hideCombatHud, refreshCombatHud, syncCombatHud } from "./modules/apps/CombatHudApp";
 import { registerHandlebarsHelpers } from "./modules/core/handlebars";
@@ -47,10 +49,14 @@ Hooks.on("createCombat", (combat: Combat) => {
   maybeShowBattleIntro(combat);
   syncCombatHud();
 });
-Hooks.on("deleteCombat", () => hideCombatHud());
-Hooks.on("updateCombat", () => {
+Hooks.on("deleteCombat", () => {
+  hideCombatHud();
+  hideBattleIntro();
+});
+Hooks.on("updateCombat", (combat: Combat) => {
   refreshCombatHud();
   refreshBattleIntro();
+  syncBattleIntro(combat);
 });
 Hooks.on("createCombatant", () => {
   refreshCombatHud();
@@ -77,11 +83,7 @@ interface RollablePrototype {
   __phcGated?: boolean;
 }
 
-/**
- * Battle intro: shown once per combat, on every client, right when the Combat
- * document is created. Finder-keyed guard so the same combat never reopens the
- * screen (e.g. on a re-connect that replays the `createCombat` hook).
- */
+/** Last combat id the GM setup / player-wait was prepared for. */
 let introShownForCombat: string | null = null;
 
 function maybeShowBattleIntro(combat: Combat): void {
@@ -90,7 +92,8 @@ function maybeShowBattleIntro(combat: Combat): void {
     const id = combat?.id ?? null;
     if (!id || introShownForCombat === id) return;
     introShownForCombat = id;
-    showBattleIntro();
+    if (game.user?.isGM === true) showBattleIntro();
+    else awaitBattleIntro();
   } catch (err) {
     logger.warn(`maybeShowBattleIntro: ${String(err)}`);
   }

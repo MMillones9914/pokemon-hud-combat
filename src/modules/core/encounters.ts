@@ -37,34 +37,3 @@ export function normalizeEncounterKind(value: unknown): EncounterKind {
     : "trainers";
 }
 
-/**
- * Parse the GM-provided rival-team list. One team per line; blank lines and
- * surrounding whitespace are dropped, duplicates are removed (case-insensitive)
- * while preserving order.
- */
-export function parseRivalTeams(raw: unknown): string[] {
-  if (typeof raw !== "string") return [];
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const line of raw.split(/\r?\n/)) {
-    const name = line.trim();
-    if (!name) continue;
-    const key = name.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(name);
-  }
-  return out;
-}
-
-/**
- * Resolve which rival team to display: the explicit pick when it is still part
- * of the list, otherwise the first configured team, otherwise an empty string.
- */
-export function resolveRivalTeam(teams: string[], preferred?: string | null): string {
-  if (typeof preferred === "string" && preferred.trim()) {
-    const match = teams.find((team) => team.toLowerCase() === preferred.trim().toLowerCase());
-    if (match) return match;
-  }
-  return teams[0] ?? "";
-}

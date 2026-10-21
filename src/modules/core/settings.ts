@@ -10,8 +10,7 @@ export const SETTINGS = {
   tokenSize: "tokenSize",
   battleIntro: "battleIntro",
   battleIntroDuration: "battleIntroDuration",
-  playerTeamName: "playerTeamName",
-  rivalTeams: "rivalTeams"
+  playerTeamName: "playerTeamName"
 } as const;
 
 export interface SettingsHooks {
@@ -131,16 +130,6 @@ export function registerSettings(hooks?: SettingsHooks): void {
     default: "",
     onChange: () => hooks?.onBattleIntroChange?.()
   });
-
-  game.settings.register(SCOPE, SETTINGS.rivalTeams, {
-    name: "pokemon-hud-combat.settings.rivalTeams.name",
-    hint: "pokemon-hud-combat.settings.rivalTeams.hint",
-    scope: "world",
-    config: true,
-    type: String,
-    default: "",
-    onChange: () => hooks?.onBattleIntroChange?.()
-  });
 }
 
 export function getSettings(): {
@@ -154,7 +143,6 @@ export function getSettings(): {
   battleIntro: boolean;
   battleIntroDuration: number;
   playerTeamName: string;
-  rivalTeams: string;
 } {
   const rawSize = game.settings.get(SCOPE, SETTINGS.tokenSize) as string;
   const tokenSize = (rawSize === "small" || rawSize === "large" ? rawSize : "medium") as
@@ -177,8 +165,7 @@ export function getSettings(): {
     tokenSize,
     battleIntro: game.settings.get(SCOPE, SETTINGS.battleIntro) as boolean,
     battleIntroDuration,
-    playerTeamName: (game.settings.get(SCOPE, SETTINGS.playerTeamName) as string) ?? "",
-    rivalTeams: (game.settings.get(SCOPE, SETTINGS.rivalTeams) as string) ?? ""
+    playerTeamName: (game.settings.get(SCOPE, SETTINGS.playerTeamName) as string) ?? ""
   };
 }
 
