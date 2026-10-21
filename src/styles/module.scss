@@ -581,19 +581,26 @@ button.phc-token {
 
 /* Confirm button: once clicked the whole picker disappears, leaving only the
    portraits and the team names on screen. */
-.phc-vs__start {
+.phc-vs__start,
+.phc-vs__skip {
   box-sizing: border-box;
   height: 28px;
-  padding: 0 18px;
-  border: 1px solid var(--phc-gold, #e8c76a);
+  padding: 0 14px;
   border-radius: 3px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.phc-vs__start {
+  padding: 0 16px;
+  border: 1px solid var(--phc-gold, #e8c76a);
   background: rgba(232, 199, 106, 0.16);
   color: var(--phc-gold, #e8c76a);
-  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  cursor: pointer;
 }
 
 .phc-vs__start:hover {
@@ -601,15 +608,9 @@ button.phc-token {
 }
 
 .phc-vs__skip {
-  box-sizing: border-box;
-  height: 28px;
-  padding: 0 14px;
   border: 1px solid #3a3a3a;
-  border-radius: 3px;
   background: rgba(0, 0, 0, 0.6);
   color: #d8d8d8;
-  font-size: 13px;
-  cursor: pointer;
 }
 
 .phc-vs__skip:hover {
@@ -634,6 +635,9 @@ button.phc-token {
   text-align: center;
   text-transform: uppercase;
   outline: none;
+  pointer-events: auto;
+  user-select: text;
+  z-index: 5;
 }
 
 .phc-vs__input::placeholder {

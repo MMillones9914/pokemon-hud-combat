@@ -331,6 +331,9 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
 
   async #onClick(event: Event): Promise<void> {
     const target = event.target as HTMLElement | null;
+    if (target instanceof HTMLInputElement && target.dataset?.action === "pick-name") {
+      return;
+    }
     const control = target?.closest<HTMLElement>("[data-action]");
     const action = control?.dataset.action;
     if (action === "pick-kind" && control instanceof HTMLSelectElement) {
