@@ -618,8 +618,27 @@ button.phc-token {
 }
 
 /* Free-text encounter name bar on the rival side (GM setup). */
+.phc-vs__name-field {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  align-self: center;
+  max-width: 100%;
+  z-index: 10;
+}
+
+.phc-vs__name-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(248, 113, 113, 0.85);
+}
+
 .phc-vs__input {
   box-sizing: border-box;
+  position: relative;
   align-self: center;
   width: min(360px, 90%);
   max-width: 100%;
@@ -635,9 +654,10 @@ button.phc-token {
   text-align: center;
   text-transform: uppercase;
   outline: none;
-  pointer-events: auto;
+  pointer-events: all !important;
   user-select: text;
-  z-index: 5;
+  z-index: 10;
+  cursor: text;
 }
 
 .phc-vs__input::placeholder {

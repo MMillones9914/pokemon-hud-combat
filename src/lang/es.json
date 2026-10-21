@@ -55,7 +55,7 @@
       },
       "battleIntro": {
         "name": "Mostrar la intro de combate (pantalla VS)",
-        "hint": "Al crear un combate, muestra una pantalla VS a todo el mundo."
+        "hint": "Al crear un combate, el DJ prepara el encuentro (tipo y nombre) y solo entonces la pantalla VS aparece para todo el mundo."
       },
       "battleIntroDuration": {
         "name": "Duración de la intro (segundos)",
@@ -64,7 +64,7 @@
       "playerTeamName": {
         "name": "Nombre del equipo de los jugadores",
         "hint": "Se muestra bajo los retratos de los jugadores en la pantalla VS."
-      },
+      }
     },
     "encounter": {
       "trainers": "Encuentro contra entrenadores",
@@ -79,7 +79,6 @@
       "encounterKind": "Tipo de encuentro",
       "encounterName": "Nombre del encuentro",
       "encounterNamePlaceholder": "Escribe el nombre del encuentro...",
-      "rivalTeam": "Equipo rival",
       "start": "Comenzar combate",
       "skip": "Omitir",
       "skipHint": "Haz clic o pulsa cualquier tecla para saltar",

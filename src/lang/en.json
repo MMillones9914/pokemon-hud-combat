@@ -56,7 +56,7 @@
       },
       "battleIntro": {
         "name": "Show the battle intro (VS screen)",
-        "hint": "When a combat is created, show a full-screen VS screen to everyone."
+        "hint": "When a combat is created, the GM sets up the encounter (type and name); only then does the VS screen appear for everyone."
       },
       "battleIntroDuration": {
         "name": "Battle intro duration (seconds)",
@@ -65,7 +65,7 @@
       "playerTeamName": {
         "name": "Player team name",
         "hint": "Shown under the player portraits on the VS screen."
-      },
+      }
     },
     "encounter": {
       "trainers": "Trainer encounter",
@@ -80,7 +80,6 @@
       "encounterKind": "Encounter type",
       "encounterName": "Encounter name",
       "encounterNamePlaceholder": "Type the encounter name...",
-      "rivalTeam": "Rival team",
       "start": "Start battle",
       "skip": "Skip",
       "skipHint": "Click or press any key to skip",

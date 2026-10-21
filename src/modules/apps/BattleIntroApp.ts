@@ -62,6 +62,20 @@ function localize(key: string, data?: Record<string, unknown>): string {
 }
 
 /**
+ * Fingerprint of the portraits currently on screen.
+ *
+ * The setup screen is re-rendered whenever a combatant shows up, and a
+ * re-render replaces the whole DOM: the name bar would lose its focus and the
+ * "Comenzar combate" button could be swapped out between mousedown and mouseup.
+ * Comparing this fingerprint lets us skip the re-render when nothing that is
+ * actually painted has changed.
+ */
+function portraitSignature(view: { players: BattleIntroEntry[]; rivals: BattleIntroEntry[] }): string {
+  const part = (entries: BattleIntroEntry[]) => entries.map((e) => `${e.id}:${e.img}`).join("|");
+  return `${part(view.players)}::${part(view.rivals)}`;
+}
+
+/**
  * Full-screen "VS" battle intro (ApplicationV2).
  *
  * Two phases:
@@ -116,6 +130,8 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
   /** Focus state of the name bar, kept across re-renders. */
   #focusName = false;
   #caret = 0;
+  /** Fingerprint of the last rendered portraits, to skip pointless re-renders. */
+  #signature = "";
 
   /**
    * Frame height (in px) sized so at least `PORTRAITS_PER_ROW` portraits fit
@@ -181,6 +197,7 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
       encounterName: this.#encounterName,
       playerTeam
     });
+    this.#signature = portraitSignature(view);
     return {
       isGM,
       setup,
@@ -332,8 +349,10 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
 
   async #onClick(event: Event): Promise<void> {
     const target = event.target as HTMLElement | null;
-    if (target instanceof HTMLInputElement && target.dataset?.action === "pick-name") {
-      return;
+    if (target instanceof HTMLInputElement) {
+      if (target.dataset?.action === "pick-name") {
+        return;
+      }
     }
     const control = target?.closest<HTMLElement>("[data-action]");
     const action = control?.dataset.action;
@@ -367,6 +386,15 @@ export class BattleIntroApp extends foundry.applications.api.HandlebarsApplicati
    */
   refreshView(): void {
     if (!this.rendered) return;
+    if (this.#phase === "setup") {
+      // Nothing new to paint: keep the DOM (and the GM's typing) untouched.
+      const playerTeam = this.#playerTeam ?? (getSettings().playerTeamName ?? "").trim();
+      const view = buildBattleIntroView({
+        encounterName: this.#encounterName,
+        playerTeam
+      });
+      if (portraitSignature(view) === this.#signature) return;
+    }
     try {
       void this.render();
     } catch (err) {

@@ -188,7 +188,7 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
     foundry.applications.api.HandlebarsApplicationMixin.HandlebarsTemplatePart
   > = {
     bar: {
-      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.3.7.hbs`,
+      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.3.8.hbs`,
       id: `${MODULE_ID}-bar`,
       root: true
     }
