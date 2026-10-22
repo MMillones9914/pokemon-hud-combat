@@ -2,6 +2,7 @@ import type { ActivePokemonInfo, RawCombatant } from "./combat-order";
 import { buildCombatGroups, markActive } from "./combat-order";
 import { canRollInitiative } from "./initiative-gate";
 import { applyInitiativeMode, type InitiativeRollMode } from "./initiative-mode";
+import { requestInitiativeApply } from "./socket";
 import { getSettings } from "./settings";
 import { readCoreStats } from "./stats";
 import type { CombatView, HpSnapshot, InitiativeGateResult } from "../types/index";
@@ -338,7 +339,7 @@ export function gateForCombatant(combatant: Combatant): InitiativeGateResult {
 /** Minimal surface of a Foundry `Roll` we depend on. */
 interface InitiativeRollLike {
   evaluate: () => Promise<unknown>;
-  toMessage: (data?: Record<string, unknown>) => Promise<unknown>;
+  toMessage: (data?: Record<string, unknown>) => Promise<{ id?: string } | undefined>;
   total?: number;
   options?: Record<string, unknown>;
   data?: Record<string, unknown>;
@@ -526,11 +527,15 @@ export async function rollCombatantInitiative(
         game.i18n?.format("pokemon-hud-combat.hud.initiativeFlavor", { name: combatant.name }) ??
         "Initiative";
 
-      await roll.toMessage({
+      // The flag lets the GM's client validate a relayed initiative request
+      // against this message (the server authenticates its author/content).
+      const message = await roll.toMessage({
         speaker,
         whisper,
         flavor,
-        flags: { "pokemon-hud-combat": { initiative: true } }
+        flags: {
+          "pokemon-hud-combat": { initiative: { combatantId: combatantId, total } }
+        }
       });
 
       const updateInitiative = (
@@ -541,14 +546,34 @@ export async function rollCombatantInitiative(
       if (typeof updateInitiative === "function") {
         try {
           await updateInitiative.call(combatant, { initiative: total });
+          return;
         } catch (err) {
           // Foundry refuses the update when the user does not own the actor.
-          // The dice were shown, but the score would be lost: say so.
           logger.warn(`rollCombatantInitiative (write back): ${String(err)}`);
-          ui.notifications?.warn(
-            game.i18n.localize("pokemon-hud-combat.error.initiativeNotSaved")
-          );
         }
+      }
+
+      // The dice were shown but the score would be lost: relay the value to
+      // the GM's client, which is allowed to write it.
+      const messageId = typeof message?.id === "string" ? message.id : "";
+      const relayed =
+        !game.user?.isGM &&
+        !!messageId &&
+        requestInitiativeApply({
+          type: "applyInitiative",
+          combatantId,
+          total,
+          messageId,
+          userId: game.user?.id ?? ""
+        });
+      if (relayed) {
+        ui.notifications?.info(
+          game.i18n.localize("pokemon-hud-combat.error.initiativeRelayed")
+        );
+      } else {
+        ui.notifications?.warn(
+          game.i18n.localize("pokemon-hud-combat.error.initiativeNotSaved")
+        );
       }
       return;
     } catch (err) {

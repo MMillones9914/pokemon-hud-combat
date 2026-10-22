@@ -15,7 +15,9 @@
     },
     "error": {
       "noActivePokemon": "Ese entrenador no tiene un Pokémon activo: invoca uno antes de tirar iniciativa.",
-      "initiativeNotSaved": "La tirada se publicó, pero Foundry no dejó guardar la iniciativa: el personaje debe ser tuyo (asígnatelo o pídele al DJ que te lo asigne)."
+      "initiativeNotSaved": "La tirada se publicó, pero no se pudo guardar la iniciativa: pídele al DJ que la fije.",
+      "initiativeRelayed": "Tu tirada se envió al DJ: él guardará tu iniciativa en el rastreador.",
+      "initiativeNeedsGM": "{name} tiró {total} para {combatant}, pero Foundry no le deja guardar la iniciativa: fiéjala tú."
     },
     "settings": {
       "enabled": {
@@ -33,6 +35,10 @@
       "gmBypass": {
         "name": "El DJ ignora la regla de iniciativa",
         "hint": "Permite al DJ tirar iniciativa para un entrenador sin Pokémon activo."
+      },
+      "playerInitiative": {
+        "name": "Permitir que los jugadores fijen su iniciativa",
+        "hint": "Un jugador puede tirar su iniciativa desde el retrato del HUD. Foundry no deja guardar la iniciativa de alguien que no es dueño de su personaje, así que el DJ la guarda por él. Desactívalo si prefieres que solo el DJ pueda fijarla."
       },
       "debug": {
         "name": "Registro de depuración",

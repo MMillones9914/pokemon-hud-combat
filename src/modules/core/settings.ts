@@ -5,6 +5,7 @@ export const SETTINGS = {
   autoShow: "autoShow",
   hideNativeTracker: "hideNativeTracker",
   gmBypass: "gmBypass",
+  playerInitiative: "playerInitiative",
   debug: "debug",
   imageSource: "imageSource",
   tokenSize: "tokenSize",
@@ -55,6 +56,15 @@ export function registerSettings(hooks?: SettingsHooks): void {
   game.settings.register(SCOPE, SETTINGS.gmBypass, {
     name: "pokemon-hud-combat.settings.gmBypass.name",
     hint: "pokemon-hud-combat.settings.gmBypass.hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true
+  });
+
+  game.settings.register(SCOPE, SETTINGS.playerInitiative, {
+    name: "pokemon-hud-combat.settings.playerInitiative.name",
+    hint: "pokemon-hud-combat.settings.playerInitiative.hint",
     scope: "world",
     config: true,
     type: Boolean,
@@ -125,6 +135,7 @@ export function getSettings(): {
   autoShow: boolean;
   hideNativeTracker: boolean;
   gmBypass: boolean;
+  playerInitiative: boolean;
   debug: boolean;
   imageSource: "token" | "actor";
   tokenSize: "small" | "medium" | "large";
@@ -143,6 +154,7 @@ export function getSettings(): {
     autoShow: game.settings.get(SCOPE, SETTINGS.autoShow) as boolean,
     hideNativeTracker: game.settings.get(SCOPE, SETTINGS.hideNativeTracker) as boolean,
     gmBypass: game.settings.get(SCOPE, SETTINGS.gmBypass) as boolean,
+    playerInitiative: game.settings.get(SCOPE, SETTINGS.playerInitiative) as boolean,
     debug: game.settings.get(SCOPE, SETTINGS.debug) as boolean,
     imageSource,
     tokenSize,

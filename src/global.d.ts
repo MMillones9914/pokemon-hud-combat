@@ -10,6 +10,7 @@ declare global {
     "pokemon-hud-combat.autoShow": boolean;
     "pokemon-hud-combat.hideNativeTracker": boolean;
     "pokemon-hud-combat.gmBypass": boolean;
+    "pokemon-hud-combat.playerInitiative": boolean;
     "pokemon-hud-combat.debug": boolean;
     "pokemon-hud-combat.imageSource": string;
     "pokemon-hud-combat.tokenSize": string;

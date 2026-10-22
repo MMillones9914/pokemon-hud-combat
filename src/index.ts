@@ -14,6 +14,7 @@ import { registerKeybindings } from "./modules/core/keybindings";
 import { logger } from "./modules/core/logger";
 import { applyNativeTrackerVisibility } from "./modules/core/native-tracker";
 import { getSettings, registerSettings } from "./modules/core/settings";
+import { registerSocketHandlers } from "./modules/core/socket";
 
 const MODULE_ID = "pokemon-hud-combat";
 
@@ -34,6 +35,7 @@ Hooks.once("init", () => {
   });
   registerKeybindings();
   registerHandlebarsHelpers();
+  registerSocketHandlers();
   installInitiativeGate();
 });
 

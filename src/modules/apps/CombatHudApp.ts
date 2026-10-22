@@ -60,8 +60,7 @@ export interface TemplateGroup {
   active: boolean;
   faction: Faction;
   rollable: boolean;
-  canRoll: boolean;
-  /** Clicking the portrait rolls initiative (pending + allowed for this user). */
+  /** Clicking the portrait rolls initiative (pending + allowed by the rules). */
   canPortraitRoll: boolean;
   blockedKey: string | null;
   pokemon: TemplatePokemon | null;
@@ -107,15 +106,19 @@ function pokemonRow(pokemon: PokemonRow): TemplatePokemon {
     hasInitiative,
     defeated: pokemon.defeated,
     active: pokemon.active === true,
-    canRoll: !!combatantId && !hasInitiative && canUserRoll(combatantId)
+    canRoll: !!combatantId && !hasInitiative
   };
 }
 
-function toTemplateGroups(view: CombatView): TemplateGroup[] {
+function toTemplateGroups(view: CombatView, isGM: boolean): TemplateGroup[] {
   return view.groups.map((group) => {
     const hasInitiative = typeof group.initiative === "number";
-    const canRoll = canUserRoll(group.combatantId);
     const rollable = group.rollable;
+    // Players may roll from any portrait that is not an enemy card: the card
+    // border already tells both sides who belongs to whom.
+    const mayRoll = isGM || group.faction !== "enemy";
+    const pokemon = group.pokemon ? pokemonRow(group.pokemon) : null;
+    if (pokemon) pokemon.canRoll = pokemon.canRoll && mayRoll;
     return {
       combatantId: group.combatantId,
       kind: group.kind,
@@ -130,128 +133,13 @@ function toTemplateGroups(view: CombatView): TemplateGroup[] {
       active: group.active || group.pokemon?.active === true,
       faction: group.faction,
       rollable,
-      canRoll,
-      canPortraitRoll: !hasInitiative && rollable && canRoll,
+      // Every pending combatant that passes the rules is a roll target for
+      // everybody: players may roll their own initiative from the portrait.
+      canPortraitRoll: !hasInitiative && rollable && mayRoll,
       blockedKey: group.blockedKey,
-      pokemon: group.pokemon ? pokemonRow(group.pokemon) : null
+      pokemon
     };
   });
-}
-
-/**
- * Tokens the viewing user controls on the active scene.
- *
- * This is the check players actually pass: a player does not necessarily own
- * the actor in Foundry's ownership table (the GM may have created it), but the
- * token they control on the map is theirs, and the portrait on the bar is that
- * token's trainer.
- */
-function controlledTokens(): { tokenIds: Set<string>; actorIds: Set<string> } {
-  const tokenIds = new Set<string>();
-  const actorIds = new Set<string>();
-  try {
-    const controlled = (canvas as { tokens?: { controlled?: unknown } } | undefined)?.tokens
-      ?.controlled;
-    if (!Array.isArray(controlled)) return { tokenIds, actorIds };
-    for (const placeable of controlled) {
-      const doc = (placeable as { document?: { id?: string; actorId?: string } } | undefined)
-        ?.document;
-      if (doc?.id) tokenIds.add(doc.id);
-      if (doc?.actorId) actorIds.add(doc.actorId);
-    }
-  } catch {
-    /* ignore */
-  }
-  return { tokenIds, actorIds };
-}
-
-/**
- * Players can roll initiative for the combatants they own or control.
- *
- * Several independent proofs are accepted, because Foundry's ownership model
- * is not the only way a player owns their character:
- *
- * 1. the user controls the combatant's token on the active scene;
- * 2. the combatant's actor is the user's assigned character;
- * 3. Foundry's own ownership flags (`isOwner`, `testUserPermission`,
- *    `ownership.default`, `permission`);
- * 4. Foundry's own combatant permission (`canUserModify`).
- */
-function canUserRoll(combatantId: string): boolean {
-  try {
-    const combatant = Array.from(game.combat?.combatants ?? []).find((c) => c.id === combatantId);
-    if (!combatant) return false;
-    if (game.user?.isGM) return true;
-
-    const actor = (combatant as { actor?: Actor | null }).actor;
-    const actorId =
-      actor?.id ?? (combatant as { actorId?: string | null }).actorId ?? "";
-    const tokenId =
-      (combatant as { token?: { id?: string } | null }).token?.id ??
-      (combatant as { tokenId?: string | null }).tokenId ??
-      "";
-
-    // 1. The user controls this combatant's token on the active scene.
-    const { tokenIds, actorIds } = controlledTokens();
-    if (tokenId && tokenIds.has(tokenId)) return true;
-    if (actorId && actorIds.has(actorId)) return true;
-
-    // 2. The actor is the user's assigned character.
-    if (game.user?.character && actorId && game.user.character.id === actorId) return true;
-
-    // 3. Foundry's ownership flags.
-    if (actor?.isOwner) return true;
-    try {
-      if (typeof actor?.testUserPermission === "function") {
-        if (actor.testUserPermission(game.user, "OWNER")) return true;
-      }
-    } catch {
-      /* ignore */
-    }
-    try {
-      const ownership = (actor as { ownership?: { default?: string } } | undefined)?.ownership;
-      if (ownership?.default && ownership.default === game.user?.id) return true;
-    } catch {
-      /* ignore */
-    }
-    try {
-      const permission = (actor as { permission?: number } | undefined)?.permission;
-      // 0 NONE · 1 LIMITED · 2 OBSERVER · 3 OWNER
-      if (typeof permission === "number" && permission >= 3) return true;
-    } catch {
-      /* ignore */
-    }
-
-    // 4. Foundry's own combatant permission check.
-    const canModify = (combatant as { canUserModify?: (user: User, action: string) => boolean })
-      .canUserModify;
-    if (typeof canModify === "function") {
-      try {
-        if (canModify.call(combatant, game.user, "update")) return true;
-      } catch {
-        /* ignore */
-      }
-    }
-
-    // 5. Foundry's own list of the players who own this combatant.
-    try {
-      const players = (combatant as { players?: User[] }).players;
-      if (Array.isArray(players) && players.some((u) => u?.id === game.user?.id)) return true;
-    } catch {
-      /* ignore */
-    }
-
-    // 6. Foundry's own token ownership.
-    try {
-      const token = (combatant as { token?: { isOwner?: boolean } | null }).token;
-      if (token?.isOwner === true) return true;
-    } catch {
-      /* ignore */
-    }
-    return false;
-  } catch {
-    return false;
-  }
 }
 
 export class CombatHudApp extends foundry.applications.api.HandlebarsApplicationMixin(
@@ -277,7 +165,7 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
     foundry.applications.api.HandlebarsApplicationMixin.HandlebarsTemplatePart
   > = {
     bar: {
-      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.3.13.hbs`,
+      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.3.14.hbs`,
       id: `${MODULE_ID}-bar`,
       root: true
     }
@@ -290,12 +178,13 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
     _options: DeepPartial<CombatHudRenderOptions> & { isFirstRender?: boolean }
   ): Promise<CombatHudContext> {
     const view = buildCombatView();
-    const groups = toTemplateGroups(view);
+    const isGM = game.user?.isGM === true;
+    const groups = toTemplateGroups(view, isGM);
     return {
       started: view.started,
       round: view.round,
       showRound: view.started && view.round > 0,
-      isGM: game.user?.isGM === true,
+      isGM,
       tokenHeight: tokenHeightCss(),
       groups,
       hasGroups: groups.length > 0

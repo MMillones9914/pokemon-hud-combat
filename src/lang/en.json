@@ -15,7 +15,9 @@
     },
     "error": {
       "noActivePokemon": "That trainer has no active Pokémon: summon one before rolling initiative.",
-      "initiativeNotSaved": "The roll was posted, but Foundry refused to save the initiative: the character must belong to you (assign it to yourself, or ask the GM to do it)."
+      "initiativeNotSaved": "The roll was posted, but the initiative could not be saved: ask the GM to set it.",
+      "initiativeRelayed": "Your roll was sent to the GM: they will save your initiative in the tracker.",
+      "initiativeNeedsGM": "{name} rolled {total} for {combatant}, but Foundry will not let them save the initiative: set it yourself."
     },
     "settings": {
       "enabled": {
@@ -33,6 +35,10 @@
       "gmBypass": {
         "name": "GMs bypass the initiative rule",
         "hint": "Let the GM roll initiative for a trainer without an active Pokémon."
+      },
+      "playerInitiative": {
+        "name": "Let players set their own initiative",
+        "hint": "Players can roll their initiative from the HUD portrait. Foundry will not let them save the initiative of a character they do not own, so the GM saves it for them. Turn it off if only the GM should set initiative."
       },
       "debug": {
         "name": "Debug logging",
