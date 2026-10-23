@@ -170,7 +170,7 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
     foundry.applications.api.HandlebarsApplicationMixin.HandlebarsTemplatePart
   > = {
     bar: {
-      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.4.2.hbs`,
+      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.4.3.hbs`,
       id: `${MODULE_ID}-bar`,
       root: true
     }
@@ -421,8 +421,21 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
 
   #applySize(): void {
     const el = this.element as HTMLElement;
-    el.style.setProperty("--phc-token-h", tokenHeightCss(), "important");
-    el.style.setProperty("--phc-poke-h", pokemonHeightCss(), "important");
+    const tokenH = tokenHeightCss();
+    const pokeH = pokemonHeightCss();
+    el.style.setProperty("--phc-token-h", tokenH, "important");
+    el.style.setProperty("--phc-poke-h", pokeH, "important");
+    // Size the mini (Pokémon) tokens directly as well: relying only on the
+    // CSS variable did not cascade reliably in Foundry's rendered DOM, so the
+    // portraits kept the trainer size.
+    const pokePx = parseInt(pokeH, 10);
+    if (Number.isFinite(pokePx)) {
+      const pokeW = Math.round(pokePx * 0.75);
+      for (const mini of Array.from(el.querySelectorAll<HTMLElement>(".phc-token--mini"))) {
+        mini.style.setProperty("height", `${pokePx}px`, "important");
+        mini.style.setProperty("width", `${pokeW}px`, "important");
+      }
+    }
   }
 
   #handleError(where: string, err: unknown): void {
