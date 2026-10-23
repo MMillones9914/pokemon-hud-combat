@@ -308,6 +308,12 @@ function combatantImg(combatant: Combatant, actor: Actor | null): string {
   const actorImg = typeof actor?.img === "string" ? actor.img : "";
   const fallback = "icons/svg/mystery-man.svg";
 
+  // Pokémon (wild or any non-trainer combatant) always use the token art,
+  // regardless of the imageSource setting — only trainers honour it.
+  if (!isTrainerActor(actor)) {
+    return tokenSrc || combatantImg || actorImg || fallback;
+  }
+
   if (srcSetting === "actor") {
     return actorImg || combatantImg || tokenSrc || fallback;
   }

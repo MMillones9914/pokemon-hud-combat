@@ -28,11 +28,11 @@
   --phc-turn-enemy: #f87171;
 
   /* Token HEIGHT drives the card size (setting: small/medium/large).
-     Trainers: 100/125/150px tall. Pokémon mini token: 75/100/125px tall.
-     Width follows the 3:4 portrait ratio. `#applySize()` overrides these
-     inline on this same element. */
+     Trainers: 100/125/150px tall. Pokémon mini token: 30% smaller
+     (calc(var(--phc-token-h) * 0.7)). Width follows the 3:4 portrait ratio.
+     `#applySize()` overrides these inline on this same element. */
   --phc-token-h: 125px;
-  --phc-poke-h: 100px;
+  --phc-poke-h: calc(var(--phc-token-h) * 0.7);
 
   /* Widths derived from the heights (3:4 portrait). */
   --phc-portrait-w: calc(var(--phc-token-h) * 0.75);

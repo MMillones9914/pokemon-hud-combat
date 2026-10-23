@@ -170,7 +170,7 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
     foundry.applications.api.HandlebarsApplicationMixin.HandlebarsTemplatePart
   > = {
     bar: {
-      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.3.16.hbs`,
+      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.4.0.hbs`,
       id: `${MODULE_ID}-bar`,
       root: true
     }
@@ -545,14 +545,11 @@ function tokenHeightCss(): string {
 }
 
 /**
- * Summoned Pokémon mini-token HEIGHT: small → 75px, medium → 100px,
- * large → 125px (always smaller than the trainer card).
+ * Summoned Pokémon mini-token HEIGHT: always 30% smaller than the trainer
+ * card (`--phc-token-h`), scaled by the chosen token size.
  */
 function pokemonHeightCss(): string {
-  const size = getSettings().tokenSize;
-  if (size === "small") return "75px";
-  if (size === "large") return "125px";
-  return "100px";
+  return "calc(var(--phc-token-h) * 0.7)";
 }
 
 export function isCombatHudVisible(): boolean {
