@@ -134,13 +134,22 @@ function partyActorIds(trainer: Actor): string[] {
   return party.filter((id): id is string => typeof id === "string" && id.length > 0);
 }
 
+function prototypeTokenSrc(actor: Actor | null): string {
+  if (!actor) return "";
+  const pt = (actor as { prototypeToken?: { texture?: { src?: unknown }; img?: unknown } }).prototypeToken;
+  if (typeof pt?.texture?.src === "string" && pt.texture.src) return pt.texture.src;
+  if (typeof pt?.img === "string" && pt.img) return pt.img;
+  return "";
+}
+
 function buildActive(token: SceneToken | null, actor: Actor | null): ActivePokemon | null {
   if (!token && !actor) return null;
+  const img = token?.img || prototypeTokenSrc(actor) || actor?.img || "icons/svg/mystery-man.svg";
   return {
     token,
     actor,
     name: actor?.name ?? token?.name ?? "",
-    img: token?.img || actor?.img || "icons/svg/mystery-man.svg"
+    img
   };
 }
 
@@ -310,8 +319,16 @@ function combatantImg(combatant: Combatant, actor: Actor | null): string {
 
   // Pokémon (wild or any non-trainer combatant) always use the token art,
   // regardless of the imageSource setting — only trainers honour it.
+  // Prefer the live token texture, then the actor's prototype token, then
+  // whatever else is available.
   if (!isTrainerActor(actor)) {
-    return tokenSrc || combatantImg || actorImg || fallback;
+    return (
+      tokenSrc ||
+      prototypeTokenSrc(actor) ||
+      combatantImg ||
+      actorImg ||
+      fallback
+    );
   }
 
   if (srcSetting === "actor") {
