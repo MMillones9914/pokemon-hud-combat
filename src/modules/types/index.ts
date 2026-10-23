@@ -32,6 +32,8 @@ export interface CombatGroup {
   active: boolean;
   /** Ally (light-blue border) vs. enemy (red border) for the viewing user. */
   faction: Faction;
+  /** The viewing user owns this combatant (their own character / token). */
+  owned: boolean;
   /** Whether the HUD may offer an initiative roll button for this entry. */
   rollable: boolean;
   /** Localization key explaining why rolling is blocked (when `rollable` is false). */
@@ -61,6 +63,11 @@ export interface InitiativeGateInput {
   isGM?: boolean;
   /** Whether GMs bypass the gate (module setting). */
   gmBypass?: boolean;
+  /**
+   * The user running the roll owns this combatant (their own character).
+   * Owning the sheet is proof enough to roll one's own initiative.
+   */
+  ownsCombatant?: boolean;
 }
 
 export interface InitiativeGateResult {

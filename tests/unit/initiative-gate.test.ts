@@ -18,6 +18,28 @@ describe("canRollInitiative", () => {
     expect(result.blockedKey).toBe("pokemon-hud-combat.error.noActivePokemon");
   });
 
+  it("lets a player roll their own combatant without a resolved Pokémon", () => {
+    const result = canRollInitiative({
+      isTrainer: true,
+      hasActivePokemon: false,
+      isGM: false,
+      ownsCombatant: true
+    });
+    expect(result.allowed).toBe(true);
+    expect(result.blockedKey).toBeNull();
+  });
+
+  it("never uses ownership to bypass a GM's disabled gmBypass", () => {
+    const result = canRollInitiative({
+      isTrainer: true,
+      hasActivePokemon: false,
+      isGM: true,
+      gmBypass: false,
+      ownsCombatant: false
+    });
+    expect(result.allowed).toBe(false);
+  });
+
   it("lets GMs bypass the gate when gmBypass is on", () => {
     const result = canRollInitiative({
       isTrainer: true,

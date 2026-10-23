@@ -115,8 +115,9 @@ function toTemplateGroups(view: CombatView, isGM: boolean): TemplateGroup[] {
     const hasInitiative = typeof group.initiative === "number";
     const rollable = group.rollable;
     // Players may roll from any portrait that is not an enemy card: the card
-    // border already tells both sides who belongs to whom.
-    const mayRoll = isGM || group.faction !== "enemy";
+    // border already tells both sides who belongs to whom. Their own card is
+    // always a roll target, even if its disposition reads as hostile.
+    const mayRoll = isGM || group.owned || group.faction !== "enemy";
     const pokemon = group.pokemon ? pokemonRow(group.pokemon) : null;
     if (pokemon) pokemon.canRoll = pokemon.canRoll && mayRoll;
     return {
@@ -165,7 +166,7 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
     foundry.applications.api.HandlebarsApplicationMixin.HandlebarsTemplatePart
   > = {
     bar: {
-      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.3.14.hbs`,
+      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.3.15.hbs`,
       id: `${MODULE_ID}-bar`,
       root: true
     }
@@ -232,6 +233,9 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
     if (!button) return;
     const action = button.dataset.action;
     if (!action) return;
+    logger.debug(
+      `hud click: action=${action} combatant=${button.dataset.combatantId ?? "—"} gm=${game.user?.isGM === true}`
+    );
     if (action === "roll-initiative") void this.#onRollInitiative(button, event);
     else if (action === "roll-all") void this.#onRollAll();
     else if (action === "focus-combatant") this.#onFocusCombatant(button);

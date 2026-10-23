@@ -35,6 +35,11 @@ export interface BuildGroupsOptions {
   gmBypassActive?: boolean;
   /** Disposition of the viewing player's own token (null for the GM). */
   userDisposition?: number | null;
+  /**
+   * Combatant ids the viewing player owns. Their own card is always rollable
+   * (and rollable even when it happens to be classified as an enemy card).
+   */
+  ownedCombatantIds?: ReadonlySet<string>;
 }
 
 /**
@@ -57,6 +62,7 @@ export function buildCombatGroups(
 ): CombatGroup[] {
   const gmBypassActive = options.gmBypassActive ?? false;
   const userDisposition = options.userDisposition ?? null;
+  const ownedCombatantIds = options.ownedCombatantIds ?? new Set<string>();
 
   // Which combatants are someone's active Pokémon → nested, never top-level.
   const nestedCombatantIds = new Set<string>();
@@ -72,8 +78,11 @@ export function buildCombatGroups(
     const active = activeByTrainerActor[raw.actorId] ?? null;
     const kind: CombatGroup["kind"] = raw.isTrainer ? "trainer" : "wild";
     const hasActivePokemon = kind === "trainer" && active !== null;
+    const owned = ownedCombatantIds.has(raw.id);
 
-    const rollable = gmBypassActive || kind === "wild" || hasActivePokemon;
+    // A player may always roll their own card, even when the local view cannot
+    // resolve the trainer's summoned Pokémon (rule 1 only gates *other* cards).
+    const rollable = gmBypassActive || kind === "wild" || hasActivePokemon || owned;
 
     const pokemon: PokemonRow | null = active
       ? {
@@ -98,6 +107,7 @@ export function buildCombatGroups(
       defeated: raw.defeated,
       active: false,
       faction: classifyFaction(raw.disposition, userDisposition),
+      owned,
       rollable,
       blockedKey: rollable ? null : "pokemon-hud-combat.error.noActivePokemon",
       pokemon

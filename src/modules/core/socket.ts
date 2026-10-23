@@ -1,9 +1,5 @@
 import type { InitiativeRequest } from "./initiative-relay";
-import {
-  canApplyRelay,
-  parseInitiativeRequest,
-  readInitiativeFlag
-} from "./initiative-relay";
+import { canApplyRelay, parseInitiativeRequest, readInitiativeFlag } from "./initiative-relay";
 import { logger } from "./logger";
 import { userOwnsCombatant } from "./ownership";
 import { getSettings } from "./settings";
@@ -121,6 +117,15 @@ async function handleInitiativeRequest(payload: unknown): Promise<void> {
 
     const combatant = findCombatant(request.combatantId);
     if (!combatant) return;
+
+    // The player's own write-back landed (this is the common case: they own
+    // their character). Nothing to do — and nothing to complain about.
+    if (typeof combatant.initiative === "number") {
+      logger.debug(
+        `initiative relay skipped: ${combatant.name ?? request.combatantId} already has initiative`
+      );
+      return;
+    }
 
     const requester = game.users.get(request.userId);
     const requesterIsGM = requester?.isGM === true;

@@ -5,6 +5,7 @@ import { applyInitiativeMode, type InitiativeRollMode } from "./initiative-mode"
 import { requestInitiativeApply } from "./socket";
 import { getSettings } from "./settings";
 import { readCoreStats } from "./stats";
+import { userOwnsCombatant } from "./ownership";
 import type { CombatView, HpSnapshot, InitiativeGateResult } from "../types/index";
 import { logger } from "./logger";
 
@@ -25,15 +26,6 @@ function readFlag(source: FlagSource | null | undefined, scope: string, key: str
     /* fall through to the raw flags object */
   }
   return source.flags?.[scope]?.[key];
-}
-
-/** Is the pokemon-hud-like module active? It owns the trainer/pokémon flags. */
-export function isHuddleActive(): boolean {
-  try {
-    return game.modules.get(HUDDLE_ID)?.active === true;
-  } catch {
-    return false;
-  }
 }
 
 /** Trainer vs. wild: the `hudType` flag if present, else actor type. */
@@ -106,12 +98,67 @@ function sceneTokens(): SceneToken[] {
   return out;
 }
 
+/** A trainer's resolved active Pokémon: its token (when on the canvas) and actor. */
+export interface ActivePokemon {
+  token: SceneToken | null;
+  actor: Actor | null;
+  name: string;
+  img: string;
+}
+
+function actorById(actorId: string): Actor | null {
+  try {
+    const actors = game.actors as { get?: (id: string) => Actor | undefined } | undefined;
+    return actors?.get?.(actorId) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function tokenForActor(tokens: SceneToken[], actorId: string): SceneToken | null {
+  return tokens.find((token) => token.actorId === actorId || token.actor?.id === actorId) ?? null;
+}
+
 /**
- * The token representing a trainer's active Pokémon:
- * 1. pokemon-hud-like's `summoner` token flag (authoritative when installed);
- * 2. our own `activePokemon` actor flag (trainer actor id) as fallback.
+ * Actor ids listed in pokemon-hud-like's trainer `party` flag.
+ *
+ * The party lives on the **trainer** actor (`flags["pokemon-hud-like"].trainer.party`)
+ * and is ordered; slot 0 is the lead. Some pokemon-hud-like releases never write
+ * a `summoner` token flag, so the party is the only available hint and the
+ * module must read it to know that a trainer *does* have a Pokémon.
  */
-export function activeTokenFor(trainer: Actor | null | undefined): SceneToken | null {
+function partyActorIds(trainer: Actor): string[] {
+  const data = readFlag(trainer as unknown as FlagSource, HUDDLE_ID, "trainer") as
+    { party?: unknown } | undefined;
+  const party = Array.isArray(data?.party) ? data.party : [];
+  return party.filter((id): id is string => typeof id === "string" && id.length > 0);
+}
+
+function buildActive(token: SceneToken | null, actor: Actor | null): ActivePokemon | null {
+  if (!token && !actor) return null;
+  return {
+    token,
+    actor,
+    name: actor?.name ?? token?.name ?? "",
+    img: token?.img || actor?.img || "icons/svg/mystery-man.svg"
+  };
+}
+
+/**
+ * The trainer's active Pokémon, resolved from every source the module knows:
+ *
+ * 1. pokemon-hud-like's `summoner` **token** flag (authoritative when present);
+ * 2. our own `activePokemon` **actor** flag (works with or without the data module);
+ * 3. pokemon-hud-like's trainer **party** (slot 0 = lead). This is what makes
+ *    the feature work in worlds where no `summoner` flag is ever written.
+ *
+ * Steps 2 and 3 only need the actors (`game.actors`), so they also resolve on a
+ * player's client, where the Pokémon token may not be rendered at all.
+ */
+export function activePokemonFor(
+  trainer: Actor | null | undefined,
+  combatActorIds?: ReadonlySet<string>
+): ActivePokemon | null {
   if (!trainer) return null;
   const tokens = sceneTokens();
   const ids = new Set<string>();
@@ -121,21 +168,33 @@ export function activeTokenFor(trainer: Actor | null | undefined): SceneToken | 
   if (tokenDoc?.document?.actorId) ids.add(tokenDoc.document.actorId);
   if (tokenDoc?.id) ids.add(tokenDoc.id);
 
+  // 1. pokemon-hud-like's `summoner` token flag.
   const summoned = tokens.find((token) => {
     const summoner = readFlag({ flags: token.flags }, HUDDLE_ID, "summoner");
     return typeof summoner === "string" && ids.has(summoner);
   });
-  if (summoned) return summoned;
+  if (summoned) return buildActive(summoned, summoned.actor);
 
-  // pokemon-hud-like owns the live summon state; only fall back to our own flag
-  // when it is not installed.
-  if (isHuddleActive()) return null;
+  // 2. Our own `activePokemon` actor flag.
+  const flagId = readFlag(trainer as unknown as FlagSource, MODULE_ID, "activePokemon");
+  if (typeof flagId === "string" && flagId) {
+    const token = tokenForActor(tokens, flagId);
+    const active = buildActive(token, actorById(flagId) ?? token?.actor ?? null);
+    if (active) return active;
+  }
 
-  const fallbackId = readFlag(trainer as unknown as FlagSource, MODULE_ID, "activePokemon");
-  if (typeof fallbackId !== "string" || !fallbackId) return null;
-  return (
-    tokens.find((token) => token.actorId === fallbackId || token.actor?.id === fallbackId) ?? null
-  );
+  // 3. pokemon-hud-like's party. Prefer a member that is in the combat, then one
+  //    standing on the canvas, then the first one that still resolves.
+  const party = partyActorIds(trainer);
+  const candidates = party
+    .map((actorId) => ({ actorId, token: tokenForActor(tokens, actorId) }))
+    .filter((candidate) => candidate.token !== null || actorById(candidate.actorId) !== null);
+  const chosen =
+    candidates.find((candidate) => combatActorIds?.has(candidate.actorId)) ??
+    candidates.find((candidate) => candidate.token !== null) ??
+    candidates[0];
+  if (!chosen) return null;
+  return buildActive(chosen.token, chosen.token?.actor ?? actorById(chosen.actorId));
 }
 
 function combatantActor(combatant: Combatant): Actor | null {
@@ -166,8 +225,7 @@ function combatantDisposition(combatant: Combatant): number | null {
       disposition?: unknown;
       token?: { disposition?: unknown; document?: { disposition?: unknown } } | null;
     };
-    const candidate =
-      raw.token?.document?.disposition ?? raw.token?.disposition ?? raw.disposition;
+    const candidate = raw.token?.document?.disposition ?? raw.token?.disposition ?? raw.disposition;
     return typeof candidate === "number" && Number.isFinite(candidate) ? candidate : null;
   } catch {
     return null;
@@ -185,8 +243,11 @@ function userDisposition(): number | null {
       | undefined;
     const controlled = tokens?.tokens?.controlled;
     const controlledDisp =
-      Array.isArray(controlled) && controlled.length ? controlled[0].document?.disposition : undefined;
-    if (typeof controlledDisp === "number" && Number.isFinite(controlledDisp)) return controlledDisp;
+      Array.isArray(controlled) && controlled.length
+        ? controlled[0].document?.disposition
+        : undefined;
+    if (typeof controlledDisp === "number" && Number.isFinite(controlledDisp))
+      return controlledDisp;
 
     const characterId = game.user?.character?.id;
     if (!characterId) return null;
@@ -201,25 +262,26 @@ function userDisposition(): number | null {
 
 function activePokemonInfo(
   trainer: Actor | null,
-  combatants: Combatant[]
+  combatants: Combatant[],
+  combatActorIds?: ReadonlySet<string>
 ): ActivePokemonInfo | null {
-  const token = activeTokenFor(trainer);
-  if (!token) return null;
-  const pokemonActor = token.actor;
-  const actorId = pokemonActor?.id ?? token.actorId;
+  const active = activePokemonFor(trainer, combatActorIds);
+  if (!active) return null;
+  const pokemonActor = active.actor ?? active.token?.actor ?? null;
+  const actorId = pokemonActor?.id ?? active.token?.actorId ?? "";
   if (!actorId) return null;
 
   const inCombat = combatants.find(
     (combatant) =>
-      combatantTokenId(combatant) === token.tokenId ||
+      (!!active.token && combatantTokenId(combatant) === active.token.tokenId) ||
       combatantActor(combatant)?.id === actorId ||
       (combatant as { actorId?: string | null }).actorId === actorId
   );
 
   return {
     actorId,
-    name: pokemonActor?.name ?? token.name,
-    img: token.img || pokemonActor?.img || "icons/svg/mystery-man.svg",
+    name: active.name || pokemonActor?.name || "",
+    img: active.img,
     hp: snapshotHp(pokemonActor),
     combatantId: inCombat?.id ?? null,
     initiative: typeof inCombat?.initiative === "number" ? inCombat.initiative : null,
@@ -272,6 +334,12 @@ export function buildCombatView(): CombatView {
     const combatants = Array.from(combat.combatants);
     const raws: RawCombatant[] = [];
     const activeByTrainer: Record<string, ActivePokemonInfo | null> = {};
+    const combatActorIds = new Set<string>();
+    for (const combatant of combatants) {
+      const actorId =
+        combatantActor(combatant)?.id ?? (combatant as { actorId?: string | null }).actorId ?? "";
+      if (actorId) combatActorIds.add(actorId);
+    }
 
     for (const combatant of combatants) {
       const hidden = (combatant as { hidden?: boolean }).hidden === true;
@@ -290,13 +358,27 @@ export function buildCombatView(): CombatView {
         disposition: combatantDisposition(combatant)
       });
       if (isTrainerActor(actor) && actorId) {
-        activeByTrainer[actorId] = activePokemonInfo(actor, combatants);
+        activeByTrainer[actorId] = activePokemonInfo(actor, combatants, combatActorIds);
       }
     }
 
     const gmBypassActive = game.user?.isGM === true && getSettings().gmBypass;
+    // Players may always roll their own combatants, whatever the local view can
+    // resolve about their Pokémon.
+    const ownedCombatantIds = new Set<string>();
+    if (game.user && game.user.isGM !== true) {
+      for (const combatant of combatants) {
+        if (combatant.id && userOwnsCombatant(game.user, combatant)) {
+          ownedCombatantIds.add(combatant.id);
+        }
+      }
+    }
     const groups = markActive(
-      buildCombatGroups(raws, activeByTrainer, { gmBypassActive, userDisposition: userDisposition() }),
+      buildCombatGroups(raws, activeByTrainer, {
+        gmBypassActive,
+        userDisposition: userDisposition(),
+        ownedCombatantIds
+      }),
       activeCombatantId(combat)
     );
 
@@ -328,11 +410,14 @@ function activeCombatantId(combat: Combat): string | null {
 export function gateForCombatant(combatant: Combatant): InitiativeGateResult {
   const actor = combatantActor(combatant);
   const settings = getSettings();
+  const user = game.user;
+  const isGM = user?.isGM === true;
   return canRollInitiative({
     isTrainer: isTrainerActor(actor),
-    hasActivePokemon: activeTokenFor(actor) !== null,
-    isGM: game.user?.isGM === true,
-    gmBypass: settings.gmBypass
+    hasActivePokemon: activePokemonFor(actor) !== null,
+    isGM,
+    gmBypass: settings.gmBypass,
+    ownsCombatant: !isGM && !!user && userOwnsCombatant(user, combatant)
   });
 }
 
@@ -397,7 +482,9 @@ function buildInitiativeRoll(
   // 1. The combatant's own roll machinery (dnd5e → D20Roll with actor data).
   try {
     const own = (
-      combatant as unknown as { getInitiativeRoll?: (formula?: string) => InitiativeRollLike | null }
+      combatant as unknown as {
+        getInitiativeRoll?: (formula?: string) => InitiativeRollLike | null;
+      }
     ).getInitiativeRoll;
     if (typeof own === "function") {
       const roll = own.call(combatant);
@@ -424,8 +511,8 @@ function buildInitiativeRoll(
   ).CONFIG?.Dice;
   const source = baseInitiativeFormula(combatant);
   const formula = applyInitiativeMode(source, mode).trim() || "1d20";
-  const data = (actor as unknown as { getRollData?: () => Record<string, unknown> })
-    ?.getRollData?.() ?? {};
+  const data =
+    (actor as unknown as { getRollData?: () => Record<string, unknown> })?.getRollData?.() ?? {};
   const options: Record<string, unknown> = {};
   if (advMode !== undefined) options.advantageMode = advMode;
 
@@ -481,9 +568,13 @@ export async function rollCombatantInitiative(
   const combatant = Array.from(combat.combatants).find((c) => c.id === combatantId);
   if (!combatant) return;
 
-  // Rule 1: never roll for a trainer with no active Pokémon (unless GM bypass).
+  // Rule 1: never roll for a trainer with no active Pokémon (unless the user
+  // owns the combatant — a player always keeps control of their own roll).
   const verdict = gateForCombatant(combatant);
   if (!verdict.allowed) {
+    logger.info(
+      `initiative refused: ${combatant.name ?? combatantId} (${verdict.blockedKey ?? "unknown"})`
+    );
     ui.notifications?.warn(
       game.i18n.localize(verdict.blockedKey ?? "pokemon-hud-combat.error.noActivePokemon")
     );
@@ -543,18 +634,21 @@ export async function rollCombatantInitiative(
           update?: (data: { initiative: number | null }) => Promise<unknown>;
         }
       ).update;
+      let written = false;
       if (typeof updateInitiative === "function") {
         try {
           await updateInitiative.call(combatant, { initiative: total });
-          return;
+          written = true;
         } catch (err) {
           // Foundry refuses the update when the user does not own the actor.
           logger.warn(`rollCombatantInitiative (write back): ${String(err)}`);
         }
       }
 
-      // The dice were shown but the score would be lost: relay the value to
-      // the GM's client, which is allowed to write it.
+      // A player's write can be accepted locally and still be refused by the
+      // server. Always hand the value to the GM as well: the GM's handler does
+      // nothing when the combatant already carries an initiative, so a
+      // successful write-back is never overwritten.
       const messageId = typeof message?.id === "string" ? message.id : "";
       const relayed =
         !game.user?.isGM &&
@@ -566,14 +660,15 @@ export async function rollCombatantInitiative(
           messageId,
           userId: game.user?.id ?? ""
         });
-      if (relayed) {
-        ui.notifications?.info(
-          game.i18n.localize("pokemon-hud-combat.error.initiativeRelayed")
-        );
-      } else {
-        ui.notifications?.warn(
-          game.i18n.localize("pokemon-hud-combat.error.initiativeNotSaved")
-        );
+      logger.debug(
+        `initiative rolled: ${combatant.name ?? combatantId} = ${total} (written=${written}, relayed=${relayed})`
+      );
+      if (!written) {
+        if (relayed) {
+          ui.notifications?.info(game.i18n.localize("pokemon-hud-combat.error.initiativeRelayed"));
+        } else {
+          ui.notifications?.warn(game.i18n.localize("pokemon-hud-combat.error.initiativeNotSaved"));
+        }
       }
       return;
     } catch (err) {

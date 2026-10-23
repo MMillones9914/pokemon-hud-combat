@@ -124,6 +124,34 @@ describe("buildCombatGroups", () => {
     expect(groups[0].blockedKey).toBeNull();
   });
 
+  it("makes a player's own card rollable even without a resolved Pokémon", () => {
+    const groups = buildCombatGroups(
+      [
+        raw({ id: "mine", actorId: "ash", isTrainer: true, initiative: 8 }),
+        raw({ id: "theirs", actorId: "gary", isTrainer: true, initiative: 8 })
+      ],
+      { ash: null, gary: null },
+      { ownedCombatantIds: new Set(["mine"]) }
+    );
+    const mine = groups.find((g) => g.combatantId === "mine");
+    const theirs = groups.find((g) => g.combatantId === "theirs");
+    expect(mine?.owned).toBe(true);
+    expect(mine?.rollable).toBe(true);
+    expect(mine?.blockedKey).toBeNull();
+    expect(theirs?.owned).toBe(false);
+    expect(theirs?.rollable).toBe(false);
+  });
+
+  it("flags ownership independently of the rollable state", () => {
+    const groups = buildCombatGroups(
+      [raw({ id: "mine", actorId: "ash", isTrainer: true, initiative: 8 })],
+      { ash: pokemon() },
+      { ownedCombatantIds: new Set(["mine"]) }
+    );
+    expect(groups[0].owned).toBe(true);
+    expect(groups[0].rollable).toBe(true);
+  });
+
   it("ignores an active Pokémon entry whose trainer is not present", () => {
     const groups = buildCombatGroups([raw({ id: "wild", initiative: 8 })], {
       "missing-trainer": pokemon({ combatantId: "other" })
