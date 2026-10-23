@@ -635,7 +635,13 @@ export async function rollCombatantInitiative(
         }
       ).update;
       let written = false;
-      if (typeof updateInitiative === "function") {
+      // Only attempt the local write-back when the user actually owns the
+      // combatant: otherwise Foundry's server rejects it (`User X lacks
+      // permission to update Combatant …`) and the GM relay takes over.
+      const canWriteLocally =
+        game.user?.isGM === true ||
+        (!!game.user && userOwnsCombatant(game.user, combatant));
+      if (canWriteLocally && typeof updateInitiative === "function") {
         try {
           await updateInitiative.call(combatant, { initiative: total });
           written = true;
@@ -645,10 +651,10 @@ export async function rollCombatantInitiative(
         }
       }
 
-      // A player's write can be accepted locally and still be refused by the
-      // server. Always hand the value to the GM as well: the GM's handler does
+      // Always hand the value to the GM as well: the GM's handler does
       // nothing when the combatant already carries an initiative, so a
-      // successful write-back is never overwritten.
+      // successful write-back is never overwritten. When the user cannot
+      // write locally (no ownership) this is the only path that saves it.
       const messageId = typeof message?.id === "string" ? message.id : "";
       const relayed =
         !game.user?.isGM &&

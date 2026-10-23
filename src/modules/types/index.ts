@@ -70,6 +70,18 @@ export interface InitiativeGateInput {
   ownsCombatant?: boolean;
 }
 
+/** Input of the HUD portrait click decision (`canRollFromPortrait`, pure). */
+export interface PortraitRollInput {
+  /** The viewing user is the GM. */
+  isGM: boolean;
+  /** The viewing user owns the combatant (their own character). */
+  owned: boolean;
+  /** The card passes the initiative gate (rule 1). */
+  rollable: boolean;
+  /** The combatant already has an initiative. */
+  hasInitiative: boolean;
+}
+
 export interface InitiativeGateResult {
   allowed: boolean;
   /** Localization key for a warning when denied, null when allowed. */

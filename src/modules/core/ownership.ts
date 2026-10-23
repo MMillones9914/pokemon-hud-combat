@@ -63,12 +63,13 @@ function controlledTokens(user: User): { tokenIds: Set<string>; actorIds: Set<st
  * is not the only way a player owns their character:
  *
  * 1. the user controls the combatant's token on the active scene;
- * 2. the combatant's actor is the user's assigned character;
- * 3. Foundry's ownership flags (`testUserPermission`, `ownership.default`);
- * 4. Foundry's own combatant permission (`canUserModify`, `combatant.players`).
+ * 2. the local `isOwner` getters (only meaningful for the current user);
+ * 3. the combatant's actor is the user's assigned character;
+ * 4. Foundry's ownership flags (`testUserPermission`, `ownership.default`);
+ * 5. Foundry's own combatant permission (`canUserModify`, `combatant.players`).
  *
- * Note: `actor.isOwner` / `actor.permission` are *local user* getters, so they
- * are deliberately not used here — `testUserPermission` is the per-user check.
+ * Note: `actor.permission` is a *local user* getter, so the per-user check is
+ * `testUserPermission`; `actor.isOwner` is used only for the current user.
  */
 export function userOwnsCombatant(user: User, combatant: Combatant): boolean {
   try {
@@ -82,11 +83,23 @@ export function userOwnsCombatant(user: User, combatant: Combatant): boolean {
     if (tokenId && tokenIds.has(tokenId)) return true;
     if (actorId && actorIds.has(actorId)) return true;
 
-    // 2. The actor is the user's assigned character.
+    // 2. Foundry's local ownership getters. They are only meaningful for the
+    //    user running this client, and they are the cheapest, most reliable
+    //    proof that a player owns their own sheet/token.
+    if (user.id === game.user?.id) {
+      const local = combatant as {
+        actor?: { isOwner?: boolean } | null;
+        token?: { isOwner?: boolean } | null;
+      };
+      if (local.actor?.isOwner === true) return true;
+      if (local.token?.isOwner === true) return true;
+    }
+
+    // 3. The actor is the user's assigned character.
     const characterId = user.character?.id;
     if (characterId && actorId && characterId === actorId) return true;
 
-    // 3. Foundry's ownership flags (per user).
+    // 4. Foundry's ownership flags (per user).
     try {
       if (actor && typeof actor.testUserPermission === "function") {
         if (actor.testUserPermission(user, "OWNER")) return true;
@@ -111,7 +124,7 @@ export function userOwnsCombatant(user: User, combatant: Combatant): boolean {
       /* ignore */
     }
 
-    // 4. Foundry's own combatant permission check.
+    // 5. Foundry's own combatant permission check.
     const canModify = (combatant as { canUserModify?: (u: User, action: string) => boolean })
       .canUserModify;
     if (typeof canModify === "function") {

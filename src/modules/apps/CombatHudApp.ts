@@ -10,6 +10,7 @@ import {
   startCombat
 } from "../core/hud-context";
 import { buildCombatView } from "../core/hud-context";
+import { canRollFromPortrait } from "../core/initiative-gate";
 import type { InitiativeRollMode } from "../core/initiative-mode";
 import { logger } from "../core/logger";
 import { toggleNativeTracker } from "../core/native-tracker";
@@ -114,10 +115,10 @@ function toTemplateGroups(view: CombatView, isGM: boolean): TemplateGroup[] {
   return view.groups.map((group) => {
     const hasInitiative = typeof group.initiative === "number";
     const rollable = group.rollable;
-    // Players may roll from any portrait that is not an enemy card: the card
-    // border already tells both sides who belongs to whom. Their own card is
-    // always a roll target, even if its disposition reads as hostile.
-    const mayRoll = isGM || group.owned || group.faction !== "enemy";
+    // Only the GM and the card's own player may roll it. Rolling somebody
+    // else's card posts the dice but Foundry refuses the write ("lacks
+    // permission to update Combatant"), so those cards pan the camera instead.
+    const mayRoll = isGM || group.owned;
     const pokemon = group.pokemon ? pokemonRow(group.pokemon) : null;
     if (pokemon) pokemon.canRoll = pokemon.canRoll && mayRoll;
     return {
@@ -134,9 +135,12 @@ function toTemplateGroups(view: CombatView, isGM: boolean): TemplateGroup[] {
       active: group.active || group.pokemon?.active === true,
       faction: group.faction,
       rollable,
-      // Every pending combatant that passes the rules is a roll target for
-      // everybody: players may roll their own initiative from the portrait.
-      canPortraitRoll: !hasInitiative && rollable && mayRoll,
+      canPortraitRoll: canRollFromPortrait({
+        isGM,
+        owned: group.owned,
+        rollable,
+        hasInitiative
+      }),
       blockedKey: group.blockedKey,
       pokemon
     };
@@ -166,7 +170,7 @@ export class CombatHudApp extends foundry.applications.api.HandlebarsApplication
     foundry.applications.api.HandlebarsApplicationMixin.HandlebarsTemplatePart
   > = {
     bar: {
-      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.3.15.hbs`,
+      template: `modules/${MODULE_ID}/templates/apps/combat-hud-0.3.16.hbs`,
       id: `${MODULE_ID}-bar`,
       root: true
     }

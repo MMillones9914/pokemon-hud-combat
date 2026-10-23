@@ -1,4 +1,8 @@
-import type { InitiativeGateInput, InitiativeGateResult } from "../types/index";
+import type {
+  InitiativeGateInput,
+  InitiativeGateResult,
+  PortraitRollInput
+} from "../types/index";
 
 /**
  * Decide whether an initiative roll is allowed (pure).
@@ -33,4 +37,19 @@ export function canRollInitiative(input: InitiativeGateInput): InitiativeGateRes
   if (ownsCombatant) return { allowed: true, blockedKey: null };
 
   return { allowed: false, blockedKey: "pokemon-hud-combat.error.noActivePokemon" };
+}
+
+/**
+ * May the viewing user start a roll from a HUD card? (pure)
+ *
+ * Only the GM and the card's **own player** may roll it. A player rolling
+ * somebody else's card only gets the dice in chat — Foundry's server refuses to
+ * store the value (`User X lacks permission to update Combatant ...`) and the
+ * GM relay would end up writing it, which is not what anybody asked for. The
+ * card of another combatant therefore pans the camera instead.
+ */
+export function canRollFromPortrait(input: PortraitRollInput): boolean {
+  if (input.hasInitiative) return false;
+  if (!input.rollable) return false;
+  return input.isGM || input.owned;
 }

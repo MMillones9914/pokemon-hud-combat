@@ -1,6 +1,23 @@
 import { describe, it, expect } from "vitest";
-import { canRollInitiative } from "../../src/modules/core/initiative-gate";
+import { canRollInitiative, canRollFromPortrait } from "../../src/modules/core/initiative-gate";
 
+describe("canRollFromPortrait", () => {
+  it("allows a GM to roll any pending, rollable card", () => {
+    expect(canRollFromPortrait({ isGM: true, owned: false, rollable: true, hasInitiative: false })).toBe(true);
+  });
+  it("allows a player to roll their own pending card", () => {
+    expect(canRollFromPortrait({ isGM: false, owned: true, rollable: true, hasInitiative: false })).toBe(true);
+  });
+  it("blocks a player from rolling somebody else's card", () => {
+    expect(canRollFromPortrait({ isGM: false, owned: false, rollable: true, hasInitiative: false })).toBe(false);
+  });
+  it("blocks a card that already has initiative", () => {
+    expect(canRollFromPortrait({ isGM: true, owned: true, rollable: true, hasInitiative: true })).toBe(false);
+  });
+  it("blocks a card that fails the initiative gate", () => {
+    expect(canRollFromPortrait({ isGM: true, owned: true, rollable: false, hasInitiative: false })).toBe(false);
+  });
+});
 describe("canRollInitiative", () => {
   it("allows a wild Pokémon without restrictions", () => {
     expect(canRollInitiative({ isTrainer: false, hasActivePokemon: false }).allowed).toBe(true);
