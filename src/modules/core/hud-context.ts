@@ -582,6 +582,23 @@ function advantageModeValue(mode: InitiativeRollMode): number | undefined {
  * The total is written back onto the combatant so initiative order updates.
  * `mode` applies advantage (Alt) / disadvantage (Ctrl).
  */
+/** The combatant (if any) of a trainer's currently active Pokémon. */
+export function activePokemonCombatant(trainer: Combatant): Combatant | null {
+  const combat = game.combat;
+  if (!combat) return null;
+  const actor = combatantActor(trainer);
+  const active = activePokemonFor(actor);
+  if (!active) return null;
+  const combatants = Array.from(combat.combatants);
+  return (
+    combatants.find((c) => {
+      if (active.token && combatantTokenId(c) === active.token.tokenId) return true;
+      const a = combatantActor(c);
+      return !!a && a.id === active.actor?.id;
+    }) ?? null
+  );
+}
+
 export async function rollCombatantInitiative(
   combatantId: string,
   mode: InitiativeRollMode = "normal"
@@ -692,6 +709,11 @@ export async function rollCombatantInitiative(
       logger.debug(
         `initiative rolled: ${combatant.name ?? combatantId} = ${total} (written=${written}, relayed=${relayed})`
       );
+
+      // The trainer's active Pokémon shares the trainer's initiative: keep it
+      // in sync (and relay it when the player cannot write it themselves).
+      await syncActivePokemonInitiative(combatant, total);
+
       if (!written) {
         if (relayed) {
           ui.notifications?.info(game.i18n.localize("pokemon-hud-combat.error.initiativeRelayed"));
@@ -714,6 +736,65 @@ export async function rollCombatantInitiative(
     return;
   }
   await nativeRoll.call(combatant);
+}
+
+/** Keep a trainer's active Pokémon on the same initiative as the trainer.
+ *
+ * Called after a roll (with a chat message, so the value can be relayed) and
+ * also from the combat hooks when a Pokémon is summoned/withdrawn or when the
+ * trainer's initiative changes by any other means.
+ */
+async function syncActivePokemonInitiative(
+  trainer: Combatant,
+  total: number
+): Promise<void> {
+  const poke = activePokemonCombatant(trainer);
+  if (!poke || poke.id === trainer.id) return;
+  if (poke.initiative === total) return;
+
+  const isGM = game.user?.isGM === true;
+  if (!isGM && game.user && !userOwnsCombatant(game.user, poke)) return;
+
+  const update = (poke as { update?: (data: { initiative: number | null }) => Promise<unknown> }).update;
+  if (typeof update === "function") {
+    try {
+      await update.call(poke, { initiative: total });
+    } catch (err) {
+      logger.warn(`syncActivePokemonInitiative: ${String(err)}`);
+    }
+  }
+}
+
+let _syncingPokemon = false;
+export async function syncPokemonInitiatives(): Promise<void> {
+  if (_syncingPokemon) return;
+  _syncingPokemon = true;
+  try {
+    const combat = game.combat;
+    if (!combat) return;
+    const combatants = Array.from(combat.combatants);
+    for (const trainer of combatants) {
+      const actor = combatantActor(trainer);
+      if (!isTrainerActor(actor)) continue;
+      if (typeof trainer.initiative !== "number") continue;
+      const total = trainer.initiative;
+      const poke = activePokemonCombatant(trainer);
+      if (!poke || poke.id === trainer.id) continue;
+      if (poke.initiative === total) continue;
+      const isGM = game.user?.isGM === true;
+      if (!isGM && game.user && !userOwnsCombatant(game.user, poke)) continue;
+      const update = (poke as { update?: (data: { initiative: number | null }) => Promise<unknown> }).update;
+      if (typeof update === "function") {
+        try {
+          await update.call(poke, { initiative: total });
+        } catch (err) {
+          logger.warn(`syncPokemonInitiatives: ${String(err)}`);
+        }
+      }
+    }
+  } finally {
+    _syncingPokemon = false;
+  }
 }
 
 /** Roll initiative for every combatant that has not rolled yet. */

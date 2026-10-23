@@ -9,7 +9,7 @@ import {
 } from "./modules/apps/BattleIntroApp";
 import { hideCombatHud, refreshCombatHud, syncCombatHud } from "./modules/apps/CombatHudApp";
 import { registerHandlebarsHelpers } from "./modules/core/handlebars";
-import { gateForCombatant } from "./modules/core/hud-context";
+import { gateForCombatant, syncPokemonInitiatives } from "./modules/core/hud-context";
 import { registerKeybindings } from "./modules/core/keybindings";
 import { logger } from "./modules/core/logger";
 import { applyNativeTrackerVisibility } from "./modules/core/native-tracker";
@@ -63,10 +63,12 @@ Hooks.on("updateCombat", (combat: Combat) => {
 Hooks.on("createCombatant", () => {
   refreshCombatHud();
   refreshBattleIntro();
+  void syncPokemonInitiatives();
 });
 Hooks.on("updateCombatant", () => {
   refreshCombatHud();
   refreshBattleIntro();
+  void syncPokemonInitiatives();
 });
 Hooks.on("deleteCombatant", () => {
   refreshCombatHud();
@@ -75,9 +77,18 @@ Hooks.on("deleteCombatant", () => {
 Hooks.on("combatStart", () => refreshCombatHud());
 Hooks.on("combatRound", () => refreshCombatHud());
 Hooks.on("combatTurn", () => refreshCombatHud());
-Hooks.on("updateActor", () => refreshCombatHud());
-Hooks.on("createToken", () => refreshCombatHud());
-Hooks.on("updateToken", () => refreshCombatHud());
+Hooks.on("updateActor", () => {
+  refreshCombatHud();
+  void syncPokemonInitiatives();
+});
+Hooks.on("createToken", () => {
+  refreshCombatHud();
+  void syncPokemonInitiatives();
+});
+Hooks.on("updateToken", () => {
+  refreshCombatHud();
+  void syncPokemonInitiatives();
+});
 Hooks.on("deleteToken", () => refreshCombatHud());
 
 interface RollablePrototype {
